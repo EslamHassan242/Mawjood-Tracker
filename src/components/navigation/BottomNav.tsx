@@ -3,7 +3,7 @@
 import React from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { LayoutGrid, Clock, User } from "lucide-react";
+import { LayoutGrid, Clock, User, TrendingUp } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 export const BottomNav: React.FC = () => {
@@ -14,6 +14,11 @@ export const BottomNav: React.FC = () => {
       label: "Routes",
       href: "/captain",
       icon: <LayoutGrid size={22} />,
+    },
+    {
+      label: "Summary",
+      href: "/captain/summary",
+      icon: <TrendingUp size={22} />,
     },
     {
       label: "History",

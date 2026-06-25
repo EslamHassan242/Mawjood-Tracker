@@ -25,6 +25,7 @@ interface Route {
   fromArea: Area;
   toArea: Area;
   price: number;
+  sortOrder: number;
   isActive: boolean;
   tripsCount: number;
 }
@@ -40,12 +41,14 @@ export default function AdminRoutesPage() {
   const [fromAreaId, setFromAreaId] = useState("");
   const [toAreaId, setToAreaId] = useState("");
   const [price, setPrice] = useState("");
+  const [sortOrder, setSortOrder] = useState("0");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Edit Price Modal state
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
   const [editPrice, setEditPrice] = useState("");
+  const [editSortOrder, setEditSortOrder] = useState("0");
   const [isEditing, setIsEditing] = useState(false);
 
   // Fetch routes and areas
@@ -88,7 +91,12 @@ export default function AdminRoutesPage() {
       const res = await fetch("/api/admin/routes", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ fromAreaId, toAreaId, price }),
+        body: JSON.stringify({
+          fromAreaId,
+          toAreaId,
+          price,
+          sortOrder: parseInt(sortOrder) || 0,
+        }),
       });
 
       const data = await res.json();
@@ -104,6 +112,7 @@ export default function AdminRoutesPage() {
       setFromAreaId("");
       setToAreaId("");
       setPrice("");
+      setSortOrder("0");
 
       // Refresh list
       fetchData();
@@ -115,7 +124,7 @@ export default function AdminRoutesPage() {
     }
   };
 
-  // Handle editing route price
+  // Handle editing route price and sorting settings
   const handleEditPrice = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!canWrite || !editingRoute || !editPrice) return;
@@ -125,19 +134,23 @@ export default function AdminRoutesPage() {
       const res = await fetch(`/api/admin/routes/${editingRoute.id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ price: editPrice }),
+        body: JSON.stringify({
+          price: editPrice,
+          sortOrder: parseInt(editSortOrder) || 0,
+        }),
       });
 
       const data = await res.json();
 
       if (!res.ok) {
-        throw new Error(data.error || "Failed to update route price");
+        throw new Error(data.error || "Failed to update route settings");
       }
 
-      toast.success("Route price updated successfully");
+      toast.success("Route settings updated successfully");
       setIsEditModalOpen(false);
       setEditingRoute(null);
       setEditPrice("");
+      setEditSortOrder("0");
 
       // Refresh list
       fetchData();
@@ -299,6 +312,9 @@ export default function AdminRoutesPage() {
                     <Badge variant={route.isActive ? "success" : "neutral"} className="text-[9px] uppercase font-bold py-0 px-1.5">
                       {route.isActive ? "Active" : "Inactive"}
                     </Badge>
+                    <span className="text-[10px] font-black text-brand-green-600/70 dark:text-brand-green-100/50 uppercase tracking-wider">
+                      Order: {route.sortOrder || 0}
+                    </span>
                     <span className="text-[10px] font-semibold text-light-text-muted dark:text-dark-text-muted">
                       {route.tripsCount} active {route.tripsCount === 1 ? "trip" : "trips"} recorded
                     </span>
@@ -318,10 +334,11 @@ export default function AdminRoutesPage() {
                       onClick={() => {
                         setEditingRoute(route);
                         setEditPrice(String(route.price));
+                        setEditSortOrder(String(route.sortOrder || 0));
                         setIsEditModalOpen(true);
                       }}
                       className="p-1.5 rounded-lg text-light-text-muted/70 hover:bg-gray-100 dark:hover:bg-dark-border hover:text-light-text-main dark:hover:text-dark-text-main cursor-pointer"
-                      title="Edit Price"
+                      title="Edit Route"
                     >
                       <Edit size={14} />
                     </button>
@@ -442,18 +459,36 @@ export default function AdminRoutesPage() {
             step="0.5"
             disabled={isSubmitting}
           />
+
+          {/* Sort Order */}
+          <div className="flex flex-col gap-1">
+            <Input
+              label="Sort Order (Display Priority)"
+              type="number"
+              placeholder="e.g. 1"
+              value={sortOrder}
+              onChange={(e) => setSortOrder(e.target.value)}
+              required
+              min="0"
+              disabled={isSubmitting}
+            />
+            <p className="text-[10px] font-semibold text-light-text-muted dark:text-dark-text-muted">
+              Routes on the captain home screen are sorted by this value (lowest first).
+            </p>
+          </div>
         </form>
       </Modal>
 
-      {/* Edit Price Modal */}
+      {/* Edit Route Settings Modal */}
       <Modal
         isOpen={isEditModalOpen}
         onClose={() => {
           setIsEditModalOpen(false);
           setEditingRoute(null);
           setEditPrice("");
+          setEditSortOrder("0");
         }}
-        title="Adjust Route Pricing"
+        title="Adjust Route Settings"
         footer={
           <>
             <Button
@@ -462,13 +497,14 @@ export default function AdminRoutesPage() {
                 setIsEditModalOpen(false);
                 setEditingRoute(null);
                 setEditPrice("");
+                setEditSortOrder("0");
               }}
               disabled={isEditing}
             >
               Cancel
             </Button>
             <Button type="submit" form="edit-price-form" isLoading={isEditing}>
-              Save Price
+              Save Settings
             </Button>
           </>
         }
@@ -495,6 +531,22 @@ export default function AdminRoutesPage() {
             step="0.5"
             disabled={isEditing}
           />
+
+          <div className="flex flex-col gap-1">
+            <Input
+              label="Updated Sort Order"
+              type="number"
+              placeholder="e.g. 2"
+              value={editSortOrder}
+              onChange={(e) => setEditSortOrder(e.target.value)}
+              required
+              min="0"
+              disabled={isEditing}
+            />
+            <p className="text-[10px] font-semibold text-light-text-muted dark:text-dark-text-muted">
+              Routes on the captain home screen are sorted by this value (lowest first).
+            </p>
+          </div>
         </form>
       </Modal>
     </div>

@@ -36,6 +36,7 @@ model Route {
   toAreaId   String
   price      Float
   isActive   Boolean  @default(true)
+  sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
 
   fromArea Area         @relation("FromArea", fields: [fromAreaId], references: [id])

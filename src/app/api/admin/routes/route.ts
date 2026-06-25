@@ -31,6 +31,7 @@ export async function GET() {
         },
       },
       orderBy: [
+        { sortOrder: "asc" },
         { fromArea: { name: "asc" } },
         { toArea: { name: "asc" } },
       ],
@@ -44,6 +45,7 @@ export async function GET() {
       fromArea: r.fromArea,
       toArea: r.toArea,
       price: r.price,
+      sortOrder: r.sortOrder,
       isActive: r.isActive,
       createdAt: r.createdAt,
       tripsCount: r._count.trips,
@@ -70,7 +72,7 @@ export async function POST(request: Request) {
     }
 
     const body = await request.json();
-    const { fromAreaId, toAreaId, price } = body;
+    const { fromAreaId, toAreaId, price, sortOrder } = body;
 
     if (!fromAreaId || !toAreaId || price === undefined) {
       return NextResponse.json({ error: "Missing required fields" }, { status: 400 });
@@ -111,6 +113,7 @@ export async function POST(request: Request) {
         fromAreaId,
         toAreaId,
         price: routePrice,
+        sortOrder: sortOrder !== undefined ? parseInt(sortOrder) : 0,
         isActive: true,
       },
       include: {

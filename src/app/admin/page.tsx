@@ -39,13 +39,13 @@ export default function AdminDashboardPage() {
     }
   }
 
-  // Initial load & Polling every 30 seconds
+  // Initial load & Polling every 4 seconds for real-time tracking
   useEffect(() => {
     fetchDashboardStats();
 
     const interval = setInterval(() => {
       fetchDashboardStats(true);
-    }, 30000); // 30s auto-refresh
+    }, 4000); // 4s auto-refresh for real-time sync
 
     return () => clearInterval(interval);
   }, []);
@@ -55,9 +55,20 @@ export default function AdminDashboardPage() {
       {/* Welcome & Refresh section */}
       <div className="flex justify-between items-center">
         <div className="flex flex-col gap-0.5">
-          <h2 className="text-xl font-black text-light-text-main dark:text-dark-text-main tracking-tight">
-            Operations Dashboard
-          </h2>
+          <div className="flex items-center gap-2">
+            <h2 className="text-xl font-black text-light-text-main dark:text-dark-text-main tracking-tight">
+              Operations Dashboard
+            </h2>
+            <div className="flex items-center gap-1.5 bg-brand-green-500/10 dark:bg-brand-green-500/15 border border-brand-green-500/20 px-2 py-0.5 rounded-full select-none">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-brand-green-500 opacity-75"></span>
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-green-600"></span>
+              </span>
+              <span className="text-[9px] font-bold text-brand-green-600 dark:text-brand-green-400 uppercase tracking-wider leading-none">
+                Live (4s Sync)
+              </span>
+            </div>
+          </div>
           <p className="text-xs font-semibold text-light-text-muted dark:text-dark-text-muted">
             Live operations tracking and revenue oversight.
           </p>

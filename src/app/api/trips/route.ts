@@ -16,6 +16,7 @@ export async function GET(request: Request) {
     const filter = searchParams.get("filter") || "today"; // today | yesterday | custom
     const startDateParam = searchParams.get("startDate");
     const endDateParam = searchParams.get("endDate");
+    const includeDeleted = searchParams.get("includeDeleted") === "true";
 
     let start = startOfDay(new Date());
     let end = endOfDay(new Date());
@@ -36,7 +37,7 @@ export async function GET(request: Request) {
           gte: start,
           lte: end,
         },
-        status: "ACTIVE", // Only show active (non-soft-deleted) trips
+        ...(includeDeleted ? {} : { status: "ACTIVE" }),
       },
       include: {
         route: {

@@ -21,7 +21,7 @@ export async function PATCH(
 
     const { id: routeId } = await params;
     const body = await request.json();
-    const { price, isActive } = body;
+    const { price, isActive, sortOrder } = body;
 
     const dataToUpdate: any = {};
     
@@ -35,6 +35,14 @@ export async function PATCH(
 
     if (isActive !== undefined) {
       dataToUpdate.isActive = !!isActive;
+    }
+
+    if (sortOrder !== undefined) {
+      const order = parseInt(sortOrder);
+      if (isNaN(order)) {
+        return NextResponse.json({ error: "Sort order must be an integer" }, { status: 400 });
+      }
+      dataToUpdate.sortOrder = order;
     }
 
     const updatedRoute = await prisma.route.update({
