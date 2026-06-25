@@ -1,4 +1,5 @@
-import { defineConfig } from "prisma/config";
+import { defineConfig, env } from "prisma/config";
+import "dotenv/config";
 
 export default defineConfig({
   schema: "prisma/schema.prisma",
@@ -7,7 +8,8 @@ export default defineConfig({
     seed: "npx tsx prisma/seed.ts",
   },
   datasource: {
-    url: process.env["DATABASE_URL"]!,
-    directUrl: process.env["DIRECT_URL"],
+    // Must use the DIRECT connection (port 5432) for migrations.
+    // The transaction pooler (port 6543 / pgbouncer) cannot run DDL statements.
+    url: env("DIRECT_URL"),
   },
 });
