@@ -1,0 +1,87 @@
+datasource db {
+  provider = "sqlite"
+}
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         String   @default("CAPTAIN") // "ADMIN" | "CAPTAIN"
+  isActive     Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  trips        TripRecord[]
+  deletedTrips DeletedTripRecord[]
+  auditLogs    AuditLog[]
+}
+
+model Area {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  createdAt DateTime @default(now())
+
+  routesFrom Route[] @relation("FromArea")
+  routesTo   Route[] @relation("ToArea")
+}
+
+model Route {
+  id         String   @id @default(cuid())
+  fromAreaId String
+  toAreaId   String
+  price      Float
+  isActive   Boolean  @default(true)
+  createdAt  DateTime @default(now())
+
+  fromArea Area         @relation("FromArea", fields: [fromAreaId], references: [id])
+  toArea   Area         @relation("ToArea", fields: [toAreaId], references: [id])
+  trips    TripRecord[]
+
+  @@unique([fromAreaId, toAreaId])
+}
+
+model TripRecord {
+  id          String   @id @default(cuid())
+  captainId   String
+  routeId     String
+  unitPrice   Float
+  ordersCount Int      @default(1)
+  status      String   @default("ACTIVE") // "ACTIVE" | "DELETED"
+  createdAt   DateTime @default(now())
+
+  captain User  @relation(fields: [captainId], references: [id])
+  route   Route @relation(fields: [routeId], references: [id])
+
+  deletedRecord DeletedTripRecord?
+}
+
+model DeletedTripRecord {
+  id              String   @id @default(cuid())
+  originalTripId  String   @unique
+  deletedByUserId String
+  reason          String   @default("UNDO")
+  deletedAt       DateTime @default(now())
+
+  originalTrip TripRecord @relation(fields: [originalTripId], references: [id])
+  deletedBy    User       @relation(fields: [deletedByUserId], references: [id])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  actionType  String   // "ENTRY_CREATED" | "ENTRY_UPDATED" | "ENTRY_DELETED" | "ENTRY_RESTORED"
+  userId      String
+  captainName String
+  routeInfo   String?  // e.g. "Yasmeen → Narges"
+  ordersCount Int?
+  amount      Float?
+  oldValues   String?  // e.g. "Orders: 2"
+  newValues   String?  // e.g. "Orders: 3"
+  timestamp   DateTime @default(now())
+
+  user        User     @relation(fields: [userId], references: [id])
+}
