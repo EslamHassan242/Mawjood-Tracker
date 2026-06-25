@@ -13,10 +13,12 @@ import {
   FileSpreadsheet,
   LogOut,
   X,
-  ClipboardList
+  ClipboardList,
+  Shield
 } from "lucide-react";
 import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { cn } from "@/lib/utils";
+import { useRole } from "@/components/navigation/RoleContext";
 
 interface SidebarProps {
   isOpen?: boolean;
@@ -30,6 +32,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
   isMobile = false,
 }) => {
   const pathname = usePathname();
+  const { role, isSuperAdmin } = useRole();
 
   const navItems = [
     {
@@ -62,6 +65,15 @@ export const Sidebar: React.FC<SidebarProps> = ({
       href: "/admin/audit",
       icon: <ClipboardList size={20} />,
     },
+    ...(isSuperAdmin
+      ? [
+          {
+            label: "Admins/Staff",
+            href: "/admin/users",
+            icon: <Shield size={20} />,
+          },
+        ]
+      : []),
   ];
 
   const content = (
@@ -127,15 +139,30 @@ export const Sidebar: React.FC<SidebarProps> = ({
       </nav>
 
       {/* Sign Out & Theme Toggle Footer */}
-      <div className="px-1 border-t border-light-border dark:border-dark-border pt-4 flex items-center justify-between gap-3">
-        <button
-          onClick={() => signOut({ callbackUrl: "/login" })}
-          className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200 cursor-pointer active:scale-[0.98]"
-        >
-          <LogOut size={20} />
-          <span>Sign Out</span>
-        </button>
-        <ThemeToggle />
+      <div className="px-1 border-t border-light-border dark:border-dark-border pt-4 flex flex-col gap-3">
+        {role && (
+          <div className="px-4 py-2 rounded-xl bg-gray-50 dark:bg-dark-bg/50 border border-light-border dark:border-dark-border flex items-center justify-between">
+            <span className="text-xs font-semibold text-light-text-muted dark:text-dark-text-muted">Role</span>
+            <span className={cn(
+              "text-[10px] font-extrabold px-2 py-0.5 rounded-full uppercase tracking-wide",
+              isSuperAdmin && "bg-purple-100 text-purple-800 dark:bg-purple-900/40 dark:text-purple-300 border border-purple-200 dark:border-purple-800",
+              role === "ADMIN" && "bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300 border border-blue-200 dark:border-blue-800",
+              role === "MODERATOR" && "bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-300 border border-amber-200 dark:border-amber-800"
+            )}>
+              {role.replace("_", " ")}
+            </span>
+          </div>
+        )}
+        <div className="flex items-center justify-between gap-3">
+          <button
+            onClick={() => signOut({ callbackUrl: "/login" })}
+            className="flex-1 flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-semibold text-red-600 hover:bg-red-50 dark:hover:bg-red-500/10 transition-all duration-200 cursor-pointer active:scale-[0.98]"
+          >
+            <LogOut size={20} />
+            <span>Sign Out</span>
+          </button>
+          <ThemeToggle />
+        </div>
       </div>
     </div>
   );

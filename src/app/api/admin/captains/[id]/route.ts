@@ -8,6 +8,7 @@ import {
   subDays,
   startOfMonth,
 } from "date-fns";
+import { canView, canWrite, canDelete } from "@/lib/permissions";
 
 // GET /api/admin/captains/[id] - Get captain details and stats
 export async function GET(
@@ -20,9 +21,9 @@ export async function GET(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const role = (session.user as any).role;
-    if (role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
+    const role = (session.user as any).role as string;
+    if (!canView(role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const { id: captainId } = await params;
@@ -147,9 +148,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const role = (session.user as any).role;
-    if (role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
+    const role = (session.user as any).role as string;
+    if (!canWrite(role)) {
+      return NextResponse.json({ error: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
 
     const { id: captainId } = await params;
@@ -211,9 +212,9 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const role = (session.user as any).role;
-    if (role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
+    const role = (session.user as any).role as string;
+    if (!canDelete(role)) {
+      return NextResponse.json({ error: "Forbidden: Only Super Admins can deactivate captains" }, { status: 403 });
     }
 
     const { id: captainId } = await params;

@@ -10,6 +10,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatDateShort } from "@/lib/utils";
 import { toast } from "sonner";
+import { useRole } from "@/components/navigation/RoleContext";
 
 interface Area {
   id: string;
@@ -27,6 +28,7 @@ interface AreaWithCount extends Area {
 export default function AdminAreasPage() {
   const [areas, setAreas] = useState<AreaWithCount[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { canWrite, canDelete } = useRole();
 
   // Add Area state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -66,6 +68,7 @@ export default function AdminAreasPage() {
   // Handle adding area
   const handleAddArea = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canWrite) return;
     if (!name.trim()) {
       toast.error("Please enter an area name");
       return;
@@ -100,7 +103,7 @@ export default function AdminAreasPage() {
   // Handle renaming area
   const handleRenameArea = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingArea || !editName.trim()) return;
+    if (!canWrite || !editingArea || !editName.trim()) return;
 
     setIsEditing(true);
     try {
@@ -131,6 +134,7 @@ export default function AdminAreasPage() {
 
   // Handle deleting area
   const handleDeleteArea = async (area: Area) => {
+    if (!canDelete) return;
     const confirmed = window.confirm(
       `Are you sure you want to delete the area "${area.name}"?`
     );
@@ -168,13 +172,15 @@ export default function AdminAreasPage() {
           </p>
         </div>
 
-        <Button
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer"
-        >
-          <Plus size={14} />
-          <span>Add Area</span>
-        </Button>
+        {canWrite && (
+          <Button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer"
+          >
+            <Plus size={14} />
+            <span>Add Area</span>
+          </Button>
+        )}
       </div>
 
       {/* Areas List */}
@@ -189,7 +195,7 @@ export default function AdminAreasPage() {
           title="No areas found"
           description="There are no geographic areas registered in the system yet."
           icon={<MapPin size={40} />}
-          action={<Button onClick={() => setIsAddModalOpen(true)}>Create Area</Button>}
+          action={canWrite ? <Button onClick={() => setIsAddModalOpen(true)}>Create Area</Button> : undefined}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
@@ -216,29 +222,35 @@ export default function AdminAreasPage() {
                   <span>{formatDateShort(area.createdAt)}</span>
                 </div>
 
-                <div className="flex items-center gap-1">
-                  {/* Rename */}
-                  <button
-                    onClick={() => {
-                      setEditingArea(area);
-                      setEditName(area.name);
-                      setIsEditModalOpen(true);
-                    }}
-                    className="p-1.5 rounded-lg text-light-text-muted/70 hover:bg-gray-100 dark:hover:bg-dark-border hover:text-light-text-main dark:hover:text-dark-text-main cursor-pointer"
-                    title="Rename Area"
-                  >
-                    <Edit size={12} />
-                  </button>
+                {(canWrite || canDelete) && (
+                  <div className="flex items-center gap-1">
+                    {/* Rename */}
+                    {canWrite && (
+                      <button
+                        onClick={() => {
+                          setEditingArea(area);
+                          setEditName(area.name);
+                          setIsEditModalOpen(true);
+                        }}
+                        className="p-1.5 rounded-lg text-light-text-muted/70 hover:bg-gray-100 dark:hover:bg-dark-border hover:text-light-text-main dark:hover:text-dark-text-main cursor-pointer"
+                        title="Rename Area"
+                      >
+                        <Edit size={12} />
+                      </button>
+                    )}
 
-                  {/* Delete */}
-                  <button
-                    onClick={() => handleDeleteArea(area)}
-                    className="p-1.5 rounded-lg text-red-500/70 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 cursor-pointer"
-                    title="Delete Area"
-                  >
-                    <Trash2 size={12} />
-                  </button>
-                </div>
+                    {/* Delete */}
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDeleteArea(area)}
+                        className="p-1.5 rounded-lg text-red-500/70 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 cursor-pointer"
+                        title="Delete Area"
+                      >
+                        <Trash2 size={12} />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </Card>
           ))}

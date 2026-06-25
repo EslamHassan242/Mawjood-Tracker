@@ -20,6 +20,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatPrice, formatTime, formatDateShort } from "@/lib/utils";
 import { toast } from "sonner";
+import { useRole } from "@/components/navigation/RoleContext";
 
 interface CaptainDetails {
   id: string;
@@ -56,6 +57,7 @@ interface Stats {
 export default function AdminCaptainDetailsPage() {
   const { id: captainId } = useParams() as { id: string };
   const router = useRouter();
+  const { canDelete } = useRole();
 
   const [captain, setCaptain] = useState<CaptainDetails | null>(null);
   const [stats, setStats] = useState<Stats | null>(null);
@@ -107,6 +109,7 @@ export default function AdminCaptainDetailsPage() {
 
   // Handle deactivating captain
   const handleDeactivate = async () => {
+    if (!canDelete) return;
     const confirmed = window.confirm(
       "Are you sure you want to deactivate this captain's account? They will not be able to log in, but all historical trip records will be preserved."
     );
@@ -172,7 +175,7 @@ export default function AdminCaptainDetailsPage() {
             </div>
 
             {/* Deactivate account */}
-            {captain.isActive && (
+            {canDelete && captain.isActive && (
               <Button
                 variant="danger"
                 size="sm"

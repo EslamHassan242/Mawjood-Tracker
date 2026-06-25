@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canView, canWrite } from "@/lib/permissions";
 
 // GET /api/admin/areas - List all areas
 export async function GET() {
@@ -10,9 +11,9 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const role = (session.user as any).role;
-    if (role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
+    const role = (session.user as any).role as string;
+    if (!canView(role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     const areas = await prisma.area.findMany({
@@ -36,9 +37,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const role = (session.user as any).role;
-    if (role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
+    const role = (session.user as any).role as string;
+    if (!canWrite(role)) {
+      return NextResponse.json({ error: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
 
     const body = await request.json();

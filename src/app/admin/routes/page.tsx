@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
+import { useRole } from "@/components/navigation/RoleContext";
 
 interface Area {
   id: string;
@@ -32,6 +33,7 @@ export default function AdminRoutesPage() {
   const [routes, setRoutes] = useState<Route[]>([]);
   const [areas, setAreas] = useState<Area[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { role, canWrite, canDelete } = useRole();
 
   // Add Route Modal state
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
@@ -75,6 +77,7 @@ export default function AdminRoutesPage() {
   // Handle adding a new route
   const handleAddRoute = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canWrite) return;
     if (!fromAreaId || !toAreaId || !price) {
       toast.error("Please fill in all fields");
       return;
@@ -115,7 +118,7 @@ export default function AdminRoutesPage() {
   // Handle editing route price
   const handleEditPrice = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!editingRoute || !editPrice) return;
+    if (!canWrite || !editingRoute || !editPrice) return;
 
     setIsEditing(true);
     try {
@@ -148,6 +151,7 @@ export default function AdminRoutesPage() {
 
   // Handle toggling active status
   const handleToggleActive = async (route: Route) => {
+    if (!canWrite) return;
     const newStatus = !route.isActive;
     try {
       const res = await fetch(`/api/admin/routes/${route.id}`, {
@@ -175,6 +179,7 @@ export default function AdminRoutesPage() {
 
   // Handle deleting route
   const handleDeleteRoute = async (route: Route) => {
+    if (!canDelete) return;
     const confirmed = window.confirm(
       `Are you sure you want to delete the route from ${route.fromArea.name} to ${route.toArea.name}?`
     );
@@ -188,6 +193,31 @@ export default function AdminRoutesPage() {
       const data = await res.json();
 
       if (!res.ok) {
+        if (res.status === 400 && data.hasTrips) {
+          const forceConfirm = window.prompt(
+            `WARNING: This route has ${data.tripsCount} recorded trip(s).\n` +
+            `Deleting this route will permanently delete all associated trips and their audit logs.\n` +
+            `This action is irreversible.\n\n` +
+            `Type "DELETE" (case-sensitive) to confirm permanent cascade deletion:`
+          );
+
+          if (forceConfirm !== "DELETE") {
+            toast.error("Deletion cancelled");
+            return;
+          }
+
+          // Run force delete
+          const forceRes = await fetch(`/api/admin/routes/${route.id}?force=true`, {
+            method: "DELETE",
+          });
+          const forceData = await forceRes.json();
+          if (!forceRes.ok) {
+            throw new Error(forceData.error || "Failed to force delete route");
+          }
+          toast.success(forceData.message || "Route and all associated trips deleted permanently");
+          fetchData();
+          return;
+        }
         throw new Error(data.error || "Failed to delete route");
       }
 
@@ -212,13 +242,15 @@ export default function AdminRoutesPage() {
           </p>
         </div>
 
-        <Button
-          onClick={() => setIsAddModalOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer"
-        >
-          <Plus size={14} />
-          <span>Add Route</span>
-        </Button>
+        {canWrite && (
+          <Button
+            onClick={() => setIsAddModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer"
+          >
+            <Plus size={14} />
+            <span>Add Route</span>
+          </Button>
+        )}
       </div>
 
       {/* Routes List */}
@@ -281,43 +313,51 @@ export default function AdminRoutesPage() {
                   <span className="text-base font-extrabold text-brand-green-500 dark:text-brand-green-100">
                     {formatPrice(route.price)}
                   </span>
-                  <button
-                    onClick={() => {
-                      setEditingRoute(route);
-                      setEditPrice(String(route.price));
-                      setIsEditModalOpen(true);
-                    }}
-                    className="p-1.5 rounded-lg text-light-text-muted/70 hover:bg-gray-100 dark:hover:bg-dark-border hover:text-light-text-main dark:hover:text-dark-text-main cursor-pointer"
-                    title="Edit Price"
-                  >
-                    <Edit size={14} />
-                  </button>
+                  {canWrite && (
+                    <button
+                      onClick={() => {
+                        setEditingRoute(route);
+                        setEditPrice(String(route.price));
+                        setIsEditModalOpen(true);
+                      }}
+                      className="p-1.5 rounded-lg text-light-text-muted/70 hover:bg-gray-100 dark:hover:bg-dark-border hover:text-light-text-main dark:hover:text-dark-text-main cursor-pointer"
+                      title="Edit Price"
+                    >
+                      <Edit size={14} />
+                    </button>
+                  )}
                 </div>
 
                 {/* Status Toggle & Delete Actions */}
-                <div className="flex items-center gap-2">
-                  {/* Toggle Button */}
-                  <button
-                    onClick={() => handleToggleActive(route)}
-                    className="text-light-text-muted hover:text-brand-green-500 dark:hover:text-brand-green-100 cursor-pointer transition-all active:scale-95"
-                    title={route.isActive ? "Deactivate Route" : "Activate Route"}
-                  >
-                    {route.isActive ? (
-                      <ToggleRight size={26} className="text-brand-green-500 dark:text-brand-green-500" />
-                    ) : (
-                      <ToggleLeft size={26} className="text-gray-400 dark:text-gray-600" />
+                {(canWrite || canDelete) && (
+                  <div className="flex items-center gap-2">
+                    {/* Toggle Button */}
+                    {canWrite && (
+                      <button
+                        onClick={() => handleToggleActive(route)}
+                        className="text-light-text-muted hover:text-brand-green-500 dark:hover:text-brand-green-100 cursor-pointer transition-all active:scale-95"
+                        title={route.isActive ? "Deactivate Route" : "Activate Route"}
+                      >
+                        {route.isActive ? (
+                          <ToggleRight size={26} className="text-brand-green-500 dark:text-brand-green-500" />
+                        ) : (
+                          <ToggleLeft size={26} className="text-gray-400 dark:text-gray-600" />
+                        )}
+                      </button>
                     )}
-                  </button>
 
-                  {/* Delete Button */}
-                  <button
-                    onClick={() => handleDeleteRoute(route)}
-                    className="p-1.5 rounded-lg text-red-500/70 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 cursor-pointer"
-                    title="Delete Route"
-                  >
-                    <Trash2 size={16} />
-                  </button>
-                </div>
+                    {/* Delete Button */}
+                    {canDelete && (
+                      <button
+                        onClick={() => handleDeleteRoute(route)}
+                        className="p-1.5 rounded-lg text-red-500/70 hover:bg-red-50 dark:hover:bg-red-500/10 hover:text-red-600 cursor-pointer"
+                        title="Delete Route"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    )}
+                  </div>
+                )}
               </div>
             </Card>
           ))}

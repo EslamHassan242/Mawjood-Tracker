@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { canWrite, canDelete } from "@/lib/permissions";
 
 // PATCH /api/admin/areas/[id] - Update/rename an area
 export async function PATCH(
@@ -13,9 +14,9 @@ export async function PATCH(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const role = (session.user as any).role;
-    if (role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
+    const role = (session.user as any).role as string;
+    if (!canWrite(role)) {
+      return NextResponse.json({ error: "Forbidden: Insufficient permissions" }, { status: 403 });
     }
 
     const { id: areaId } = await params;
@@ -31,12 +32,8 @@ export async function PATCH(
     // Check for duplicate names (excluding current area)
     const existingArea = await prisma.area.findFirst({
       where: {
-        name: {
-          equals: formattedName,
-        },
-        id: {
-          not: areaId,
-        },
+        name: { equals: formattedName },
+        id: { not: areaId },
       },
     });
 
@@ -46,9 +43,7 @@ export async function PATCH(
 
     const updatedArea = await prisma.area.update({
       where: { id: areaId },
-      data: {
-        name: formattedName,
-      },
+      data: { name: formattedName },
     });
 
     return NextResponse.json({
@@ -62,7 +57,7 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/admin/areas/[id] - Delete an area
+// DELETE /api/admin/areas/[id] - Delete an area (SUPER_ADMIN only)
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -73,36 +68,33 @@ export async function DELETE(
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const role = (session.user as any).role;
-    if (role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
+    const role = (session.user as any).role as string;
+    if (!canDelete(role)) {
+      return NextResponse.json(
+        { error: "Forbidden: Only Super Admins can delete areas" },
+        { status: 403 }
+      );
     }
 
     const { id: areaId } = await params;
 
-    // Safety check: verify if any routes use this area as either fromArea or toArea
+    // Safety check: verify if any routes use this area
     const referencingRoutesCount = await prisma.route.count({
       where: {
-        OR: [
-          { fromAreaId: areaId },
-          { toAreaId: areaId },
-        ],
+        OR: [{ fromAreaId: areaId }, { toAreaId: areaId }],
       },
     });
 
     if (referencingRoutesCount > 0) {
       return NextResponse.json(
         {
-          error: `Cannot delete area because it is referenced by ${referencingRoutesCount} route(s). Please delete or update those routes first.`,
+          error: `Cannot delete area because it is referenced by ${referencingRoutesCount} route(s). Please delete those routes first.`,
         },
         { status: 400 }
       );
     }
 
-    // Delete area
-    await prisma.area.delete({
-      where: { id: areaId },
-    });
+    await prisma.area.delete({ where: { id: areaId } });
 
     return NextResponse.json({
       success: true,

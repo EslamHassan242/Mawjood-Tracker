@@ -11,6 +11,7 @@ import { Skeleton } from "@/components/ui/Skeleton";
 import { EmptyState } from "@/components/ui/EmptyState";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
+import { useRole } from "@/components/navigation/RoleContext";
 
 interface Captain {
   id: string;
@@ -23,6 +24,7 @@ interface Captain {
 export default function AdminCaptainsPage() {
   const [captains, setCaptains] = useState<Captain[]>([]);
   const [isLoading, setIsLoading] = useState(true);
+  const { canWrite } = useRole();
   
   // Modal state
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -54,6 +56,7 @@ export default function AdminCaptainsPage() {
   // Handle adding a new captain account
   const handleAddCaptain = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!canWrite) return;
     if (!name || !email || !password) {
       toast.error("Please fill in all fields");
       return;
@@ -105,13 +108,15 @@ export default function AdminCaptainsPage() {
         </div>
 
         {/* Add Captain button */}
-        <Button
-          onClick={() => setIsModalOpen(true)}
-          className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer"
-        >
-          <UserPlus size={14} />
-          <span>Add Captain</span>
-        </Button>
+        {canWrite && (
+          <Button
+            onClick={() => setIsModalOpen(true)}
+            className="flex items-center gap-1.5 px-4 py-2.5 rounded-xl text-xs font-bold uppercase tracking-wider cursor-pointer"
+          >
+            <UserPlus size={14} />
+            <span>Add Captain</span>
+          </Button>
+        )}
       </div>
 
       {/* Captains Grid / Table */}
@@ -126,7 +131,7 @@ export default function AdminCaptainsPage() {
           description="There are no delivery captains registered in the system yet."
           icon={<Users size={40} />}
           action={
-            <Button onClick={() => setIsModalOpen(true)}>Create Captain Account</Button>
+            canWrite ? <Button onClick={() => setIsModalOpen(true)}>Create Captain Account</Button> : undefined
           }
         />
       ) : (

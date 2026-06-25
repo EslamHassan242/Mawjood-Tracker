@@ -12,13 +12,15 @@ const prisma = new PrismaClient({ adapter });
 async function main() {
   console.log('Seeding database...');
 
-  // 1. Create Users (Admin & Captains)
+  // 1. Create Users (Admin, Super Admin, Moderator & Captains)
   const adminPasswordHash = await bcrypt.hash('admin123', 10);
+  const superAdminPasswordHash = await bcrypt.hash('super123', 10);
+  const moderatorPasswordHash = await bcrypt.hash('mod123', 10);
   const captainPasswordHash = await bcrypt.hash('captain123', 10);
 
   const admin = await prisma.user.upsert({
     where: { email: 'admin@mawjood.app' },
-    update: {},
+    update: { role: 'ADMIN' },
     create: {
       name: 'Admin User',
       email: 'admin@mawjood.app',
@@ -27,6 +29,30 @@ async function main() {
     },
   });
   console.log(`Created admin: ${admin.email}`);
+
+  const superAdmin = await prisma.user.upsert({
+    where: { email: 'superadmin@mawjood.app' },
+    update: { role: 'SUPER_ADMIN' },
+    create: {
+      name: 'Super Admin User',
+      email: 'superadmin@mawjood.app',
+      passwordHash: superAdminPasswordHash,
+      role: 'SUPER_ADMIN',
+    },
+  });
+  console.log(`Created super admin: ${superAdmin.email}`);
+
+  const moderator = await prisma.user.upsert({
+    where: { email: 'moderator@mawjood.app' },
+    update: { role: 'MODERATOR' },
+    create: {
+      name: 'Moderator User',
+      email: 'moderator@mawjood.app',
+      passwordHash: moderatorPasswordHash,
+      role: 'MODERATOR',
+    },
+  });
+  console.log(`Created moderator: ${moderator.email}`);
 
   const captain1 = await prisma.user.upsert({
     where: { email: 'ahmed@mawjood.app' },

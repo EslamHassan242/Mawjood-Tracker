@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { startOfDay, endOfDay, startOfMonth } from "date-fns";
+import { canView } from "@/lib/permissions";
 
 export async function GET() {
   try {
@@ -10,9 +11,9 @@ export async function GET() {
       return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
     }
 
-    const role = (session.user as any).role;
-    if (role !== "ADMIN") {
-      return NextResponse.json({ error: "Forbidden: Admins only" }, { status: 403 });
+    const role = (session.user as any).role as string;
+    if (!canView(role)) {
+      return NextResponse.json({ error: "Forbidden" }, { status: 403 });
     }
 
     // Dates
