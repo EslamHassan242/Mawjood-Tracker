@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { events } from "@/lib/events";
 
 // PATCH /api/trips/[id] - Edit orders count of a trip
 export async function PATCH(
@@ -84,6 +85,9 @@ export async function PATCH(
       },
     });
 
+    // Emit real-time operational change event
+    events.emit("trip-change");
+
     return NextResponse.json({
       success: true,
       message: "Trip updated successfully",
@@ -159,6 +163,9 @@ export async function DELETE(
         oldValues: `Orders: ${trip.ordersCount}, Revenue: ${totalAmount} EGP`,
       },
     });
+
+    // Emit real-time operational change event
+    events.emit("trip-change");
 
     return NextResponse.json({
       success: true,

@@ -17,6 +17,7 @@ interface Captain {
   id: string;
   name: string;
   email: string;
+  isActive: boolean;
   todayTrips: number;
   todayRevenue: number;
 }
@@ -139,18 +140,33 @@ export default function AdminCaptainsPage() {
           {captains.map((captain) => (
             <Card
               key={captain.id}
-              className="p-5 border-light-border dark:border-dark-border flex flex-col justify-between bg-white dark:bg-dark-card shadow-xs hover:border-brand-green-500/10 transition-all group"
+              className={`p-5 border-light-border dark:border-dark-border flex flex-col justify-between bg-white dark:bg-dark-card shadow-xs hover:border-brand-green-500/10 transition-all group ${
+                !captain.isActive && "opacity-70 border-dashed"
+              }`}
             >
               <div className="flex justify-between items-start gap-4">
                 {/* Avatar and Name */}
                 <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-brand-green-50 dark:bg-brand-green-500/10 border border-brand-green-500/15 text-brand-green-500 dark:text-brand-green-100 flex items-center justify-center font-bold">
+                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center font-bold border ${
+                    captain.isActive 
+                      ? "bg-brand-green-50 dark:bg-brand-green-500/10 border-brand-green-500/15 text-brand-green-500 dark:text-brand-green-100" 
+                      : "bg-gray-100 dark:bg-gray-800 border-gray-250 dark:border-gray-700 text-gray-500 dark:text-gray-400"
+                  }`}>
                     {captain.name.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex flex-col gap-0.5">
-                    <span className="text-base font-bold text-light-text-main dark:text-dark-text-main group-hover:text-brand-green-500 dark:group-hover:text-brand-green-100 transition-colors">
-                      {captain.name}
-                    </span>
+                    <div className="flex items-center gap-2">
+                      <span className="text-base font-bold text-light-text-main dark:text-dark-text-main group-hover:text-brand-green-500 dark:group-hover:text-brand-green-100 transition-colors">
+                        {captain.name}
+                      </span>
+                      <span className={`text-[9px] font-bold px-2 py-0.5 rounded-full uppercase tracking-wider ${
+                        captain.isActive 
+                          ? "bg-brand-green-100 dark:bg-brand-green-500/15 text-brand-green-700 dark:text-brand-green-400" 
+                          : "bg-red-100 dark:bg-red-500/15 text-red-700 dark:text-red-400"
+                      }`}>
+                        {captain.isActive ? "Active" : "Inactive"}
+                      </span>
+                    </div>
                     <span className="text-xs font-semibold text-light-text-muted dark:text-dark-text-muted leading-none">
                       {captain.email}
                     </span>

@@ -66,7 +66,8 @@ export default function AdminCaptainDetailsPage() {
   const [endDate, setEndDate] = useState("");
   
   const [isLoading, setIsLoading] = useState(true);
-  const [isDeactivating, setIsDeactivating] = useState(false);
+  const [isUpdatingStatus, setIsUpdatingStatus] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   // Set default dates
   useEffect(() => {
@@ -107,32 +108,64 @@ export default function AdminCaptainDetailsPage() {
     }
   }, [captainId, filter, startDate, endDate]);
 
-  // Handle deactivating captain
-  const handleDeactivate = async () => {
+  // Handle toggling active state (Activate/Deactivate)
+  const handleToggleActive = async (newActiveStatus: boolean) => {
     if (!canDelete) return;
+    const actionText = newActiveStatus ? "activate" : "deactivate";
     const confirmed = window.confirm(
-      "Are you sure you want to deactivate this captain's account? They will not be able to log in, but all historical trip records will be preserved."
+      `Are you sure you want to ${actionText} this captain's account?`
     );
     if (!confirmed) return;
 
-    setIsDeactivating(true);
+    setIsUpdatingStatus(true);
+    try {
+      const res = await fetch(`/api/admin/captains/${captainId}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ isActive: newActiveStatus }),
+      });
+
+      const data = await res.json();
+      if (res.ok) {
+        toast.success(`Captain ${newActiveStatus ? "activated" : "deactivated"} successfully`);
+        fetchCaptainStats(); // Refresh details and stats
+      } else {
+        throw new Error(data.error || `Failed to ${actionText} captain`);
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.message || `Failed to ${actionText} captain`);
+    } finally {
+      setIsUpdatingStatus(false);
+    }
+  };
+
+  // Handle hard deleting captain account and history
+  const handleDeleteCaptain = async () => {
+    if (!canDelete) return;
+    const confirmed = window.confirm(
+      "WARNING: This will PERMANENTLY DELETE this captain's account and ALL of their associated trip history, audit logs, and deleted trip records! This action is IRREVERSIBLE. Are you absolutely sure?"
+    );
+    if (!confirmed) return;
+
+    setIsDeleting(true);
     try {
       const res = await fetch(`/api/admin/captains/${captainId}`, {
         method: "DELETE",
       });
 
+      const data = await res.json();
       if (res.ok) {
-        toast.success("Captain deactivated successfully");
+        toast.success("Captain account and all history permanently deleted");
         router.push("/admin/captains");
       } else {
-        const data = await res.json();
-        throw new Error(data.error || "Failed to deactivate captain");
+        throw new Error(data.error || "Failed to delete captain");
       }
     } catch (err: any) {
       console.error(err);
-      toast.error(err.message || "Failed to deactivate captain");
+      toast.error(err.message || "Failed to delete captain");
     } finally {
-      setIsDeactivating(false);
+      setIsDeleting(false);
     }
   };
 
@@ -174,18 +207,43 @@ export default function AdminCaptainDetailsPage() {
               </div>
             </div>
 
-            {/* Deactivate account */}
-            {canDelete && captain.isActive && (
-              <Button
-                variant="danger"
-                size="sm"
-                onClick={handleDeactivate}
-                isLoading={isDeactivating}
-                className="flex items-center gap-1.5 self-start sm:self-center px-3 py-2 rounded-xl cursor-pointer"
-              >
-                <UserX size={14} />
-                <span>Deactivate Captain</span>
-              </Button>
+            {/* Account Status & Deletion Actions (Super Admin only) */}
+            {canDelete && (
+              <div className="flex flex-wrap items-center gap-2 self-start sm:self-center">
+                {captain.isActive ? (
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => handleToggleActive(false)}
+                    isLoading={isUpdatingStatus}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl border-red-200 dark:border-red-500/20 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-500/10 cursor-pointer font-bold text-xs"
+                  >
+                    <UserX size={14} />
+                    <span>Deactivate Captain</span>
+                  </Button>
+                ) : (
+                  <Button
+                    size="sm"
+                    onClick={() => handleToggleActive(true)}
+                    isLoading={isUpdatingStatus}
+                    className="flex items-center gap-1.5 px-3 py-2 rounded-xl bg-brand-green-500 hover:bg-brand-green-600 text-white cursor-pointer font-bold text-xs"
+                  >
+                    <User size={14} />
+                    <span>Activate Captain</span>
+                  </Button>
+                )}
+                
+                <Button
+                  variant="danger"
+                  size="sm"
+                  onClick={handleDeleteCaptain}
+                  isLoading={isDeleting}
+                  className="flex items-center gap-1.5 px-3 py-2 rounded-xl cursor-pointer font-bold text-xs"
+                >
+                  <UserX size={14} />
+                  <span>Delete Account</span>
+                </Button>
+              </div>
             )}
           </Card>
         )

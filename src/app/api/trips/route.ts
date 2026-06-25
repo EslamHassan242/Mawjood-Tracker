@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import { startOfDay, endOfDay, subDays } from "date-fns";
+import { events } from "@/lib/events";
 
 // GET /api/trips - List trips for the authenticated captain
 export async function GET(request: Request) {
@@ -125,6 +126,9 @@ export async function POST(request: Request) {
         amount: route.price * count,
       },
     });
+
+    // Emit real-time operational change event
+    events.emit("trip-change");
 
     return NextResponse.json({
       success: true,

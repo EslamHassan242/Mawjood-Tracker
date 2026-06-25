@@ -36,18 +36,44 @@ export default function AdminDashboardPage() {
     } finally {
       setIsLoading(false);
       setIsRefreshing(false);
-    }
   }
+}
 
-  // Initial load & Polling every 4 seconds for real-time tracking
+  // Initial load & Real-time SSE Connection (Instant updates, no visual refreshing noise)
   useEffect(() => {
+    // 1. Fetch initial stats normally on load
     fetchDashboardStats();
 
-    const interval = setInterval(() => {
-      fetchDashboardStats(true);
-    }, 4000); // 4s auto-refresh for real-time sync
+    // 2. Establish Server-Sent Events (SSE) connection for instant real-time broadcasts
+    const eventSource = new EventSource("/api/admin/dashboard/realtime");
 
-    return () => clearInterval(interval);
+    eventSource.onmessage = (event) => {
+      try {
+        // Skip heartbeat pings
+        if (event.data === "ping") return;
+
+        const data = JSON.parse(event.data);
+        setStats({
+          totalCaptains: data.totalCaptains,
+          todayTrips: data.todayTrips,
+          todayRevenue: data.todayRevenue,
+          monthRevenue: data.monthRevenue,
+        });
+
+        // Ensure loading states are resolved
+        setIsLoading(false);
+      } catch (err) {
+        console.error("Error parsing real-time dashboard stats:", err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error("Real-time connection error, EventSource will automatically reconnect in background:", err);
+    };
+
+    return () => {
+      eventSource.close();
+    };
   }, []);
 
   return (
@@ -65,7 +91,7 @@ export default function AdminDashboardPage() {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-brand-green-600"></span>
               </span>
               <span className="text-[9px] font-bold text-brand-green-600 dark:text-brand-green-400 uppercase tracking-wider leading-none">
-                Live (4s Sync)
+                Live (Real-time)
               </span>
             </div>
           </div>

@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
+import { events } from "@/lib/events";
 
 // POST /api/trips/[id]/restore - Restore a soft-deleted trip
 export async function POST(
@@ -66,6 +67,9 @@ export async function POST(
         newValues: `Orders: ${trip.ordersCount}, Revenue: ${totalAmount} EGP`,
       },
     });
+
+    // Emit real-time operational change event
+    events.emit("trip-change");
 
     return NextResponse.json({
       success: true,

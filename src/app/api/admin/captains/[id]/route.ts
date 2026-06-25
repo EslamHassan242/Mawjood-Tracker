@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
 import * as bcrypt from "bcryptjs";
+import { events } from "@/lib/events";
 import {
   startOfDay,
   endOfDay,
@@ -155,10 +156,11 @@ export async function PATCH(
 
     const { id: captainId } = await params;
     const body = await request.json();
-    const { name, email, password } = body;
+    const { name, email, password, isActive } = body;
 
     const dataToUpdate: any = {};
     if (name) dataToUpdate.name = name;
+    if (typeof isActive === "boolean") dataToUpdate.isActive = isActive;
     
     if (email) {
       // Check if email is already taken by another user
@@ -186,9 +188,13 @@ export async function PATCH(
         id: true,
         name: true,
         email: true,
+        isActive: true,
         role: true,
       },
     });
+
+    // Emit real-time operational change event to update stats
+    events.emit("trip-change");
 
     return NextResponse.json({
       success: true,
@@ -201,7 +207,7 @@ export async function PATCH(
   }
 }
 
-// DELETE /api/admin/captains/[id] - Soft-delete / deactivate captain
+// DELETE /api/admin/captains/[id] - Hard-delete captain account and all associated history
 export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ id: string }> }
@@ -214,20 +220,47 @@ export async function DELETE(
 
     const role = (session.user as any).role as string;
     if (!canDelete(role)) {
-      return NextResponse.json({ error: "Forbidden: Only Super Admins can deactivate captains" }, { status: 403 });
+      return NextResponse.json({ error: "Forbidden: Only Super Admins can delete captains" }, { status: 403 });
     }
 
     const { id: captainId } = await params;
 
-    // Soft delete captain account to preserve historical data
-    await prisma.user.update({
-      where: { id: captainId },
-      data: { isActive: false },
+    // Hard-delete captain and cascade manually to avoid database foreign key violations
+    // 1. Delete associated AuditLog entries
+    await prisma.auditLog.deleteMany({
+      where: { userId: captainId },
     });
+
+    // 2. Delete associated DeletedTripRecord entries
+    // A. Where the trip was deleted by this captain
+    await prisma.deletedTripRecord.deleteMany({
+      where: { deletedByUserId: captainId },
+    });
+    // B. Where the trip itself belonged to this captain
+    await prisma.deletedTripRecord.deleteMany({
+      where: {
+        originalTrip: {
+          captainId: captainId,
+        },
+      },
+    });
+
+    // 3. Delete associated TripRecord entries
+    await prisma.tripRecord.deleteMany({
+      where: { captainId: captainId },
+    });
+
+    // 4. Finally, delete the User record
+    await prisma.user.delete({
+      where: { id: captainId },
+    });
+
+    // Emit real-time operational change event to update dashboard
+    events.emit("trip-change");
 
     return NextResponse.json({
       success: true,
-      message: "Captain deactivated successfully",
+      message: "Captain account and all history permanently deleted",
     });
   } catch (error) {
     console.error("Error in DELETE /api/admin/captains/[id]:", error);
