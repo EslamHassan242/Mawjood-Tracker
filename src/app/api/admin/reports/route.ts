@@ -71,8 +71,8 @@ export async function GET(request: Request) {
       },
     });
 
-    const totalTrips = trips.reduce((sum: number, trip) => sum + trip.ordersCount, 0);
-    const totalRevenue = trips.reduce((sum: number, trip) => sum + (trip.unitPrice * trip.ordersCount), 0);
+    const totalTrips = trips.reduce<number>((sum, trip) => sum + trip.ordersCount, 0);
+    const totalRevenue = trips.reduce<number>((sum, trip) => sum + (trip.unitPrice * trip.ordersCount), 0);
 
     // Grouped route breakdown
     const routeBreakdownMap: {

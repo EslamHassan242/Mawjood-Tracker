@@ -42,8 +42,8 @@ export async function GET() {
         ordersCount: true,
       },
     });
-    const todayTrips = todayTripsData.reduce((sum: number, trip) => sum + trip.ordersCount, 0);
-    const todayRevenue = todayTripsData.reduce((sum: number, trip) => sum + (trip.unitPrice * trip.ordersCount), 0);
+    const todayTrips = todayTripsData.reduce<number>((sum, trip) => sum + trip.ordersCount, 0);
+    const todayRevenue = todayTripsData.reduce<number>((sum, trip) => sum + (trip.unitPrice * trip.ordersCount), 0);
  
     // 4. This Month Revenue
     const monthTripsData = await prisma.tripRecord.findMany({
@@ -58,7 +58,7 @@ export async function GET() {
         ordersCount: true,
       },
     });
-    const monthRevenue = monthTripsData.reduce((sum: number, trip) => sum + (trip.unitPrice * trip.ordersCount), 0);
+    const monthRevenue = monthTripsData.reduce<number>((sum, trip) => sum + (trip.unitPrice * trip.ordersCount), 0);
 
     return NextResponse.json({
       success: true,
