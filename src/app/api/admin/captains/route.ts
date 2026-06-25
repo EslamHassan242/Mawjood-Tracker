@@ -54,8 +54,8 @@ export async function GET() {
           },
         });
 
-        const tripsCount = todayTrips.reduce<number>((sum, trip) => sum + trip.ordersCount, 0);
-        const revenue = todayTrips.reduce<number>((sum, trip) => sum + (trip.unitPrice * trip.ordersCount), 0);
+        const tripsCount = todayTrips.reduce<number>((sum, trip: { ordersCount: number; unitPrice: number }) => sum + trip.ordersCount, 0);
+        const revenue = todayTrips.reduce<number>((sum, trip: { ordersCount: number; unitPrice: number }) => sum + (trip.unitPrice * trip.ordersCount), 0);
 
         return {
           ...captain,
