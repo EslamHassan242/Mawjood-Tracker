@@ -134,8 +134,26 @@ export default function OrdersPage({ captain = false }: { captain?: boolean }) {
         <p className="break-all text-xs">رقم المتابعة: <bdi>{trackingLabel(order.trackingNumber)}</bdi></p>
         <Link className="text-sm underline" target="_blank" href={`/order/track#ref=${order.trackingNumber}`}>رابط متابعة العميل</Link>
         <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2"><h3 className="font-bold">الاستلام</h3><p className="break-words">عمارة: {order.pickupBuilding}</p><a className="block break-all text-emerald-700 underline dark:text-emerald-400" href={`tel:${order.senderPhone}`}><bdi>{order.senderPhone}</bdi><span className="block text-sm">اتصال بالراسل</span></a></div>
-          <div className="space-y-2"><h3 className="font-bold">التسليم</h3><p className="break-words">عمارة: {order.deliveryBuilding}</p><a className="block break-all text-emerald-700 underline dark:text-emerald-400" href={`tel:${order.receiverPhone}`}><bdi>{order.receiverPhone}</bdi><span className="block text-sm">اتصال بالمستلم</span></a></div>
+          <div className="space-y-2">
+            <h3 className="font-bold text-light-text-main dark:text-dark-text-main">من</h3>
+            <p className="break-words">{order.pickupBuilding}</p>
+            {order.senderPhone ? (
+              <a className="block break-all text-emerald-700 underline dark:text-emerald-400" href={`tel:${order.senderPhone}`}>
+                <bdi>{order.senderPhone}</bdi>
+                <span className="block text-sm">اتصال بالراسل</span>
+              </a>
+            ) : null}
+          </div>
+          <div className="space-y-2">
+            <h3 className="font-bold text-light-text-main dark:text-dark-text-main">إلى</h3>
+            <p className="break-words">{order.deliveryBuilding}</p>
+            {order.receiverPhone ? (
+              <a className="block break-all text-emerald-700 underline dark:text-emerald-400" href={`tel:${order.receiverPhone}`}>
+                <bdi>{order.receiverPhone}</bdi>
+                <span className="block text-sm">اتصال بالمستلم</span>
+              </a>
+            ) : null}
+          </div>
         </div>
         {order.notes && <p className="whitespace-pre-wrap break-words rounded-xl bg-gray-50 p-3 text-sm leading-7 dark:bg-gray-900">ملاحظات: {order.notes}</p>}
         {order.cancellationNote && <p className="whitespace-pre-wrap break-words text-sm">سبب الإلغاء للعميل: {order.cancellationNote}</p>}

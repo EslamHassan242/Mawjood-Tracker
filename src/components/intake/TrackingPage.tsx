@@ -61,7 +61,7 @@ export default function TrackingPage() {
       }}>
         <label className="block space-y-2">
           <span className="font-semibold text-light-text-main dark:text-dark-text-main">رقم متابعة الطلب</span>
-          <input dir="ltr" autoComplete="off" placeholder="MJ-123456" className={fieldClass} value={input} onChange={e => setInput(e.target.value)} maxLength={50} />
+          <input dir="ltr" autoComplete="off" placeholder="123456" className={fieldClass} value={input} onChange={e => setInput(e.target.value)} maxLength={50} />
         </label>
         <Button type="submit">عرض حالة الطلب</Button>
       </form>

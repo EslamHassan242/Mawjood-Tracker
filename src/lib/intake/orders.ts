@@ -6,7 +6,7 @@ import { IntakeError, objectInput, orderInput, textInput, versionInput, tracking
 
 export function generateShortTrackingNumber(): string {
   const digits = Math.floor(100000 + Math.random() * 900000).toString();
-  return `MJ-${digits}`;
+  return digits;
 }
 
 export async function createOrder(input: unknown, publicOnly: boolean) {
@@ -109,13 +109,18 @@ export async function updateOrder(id: string, input: unknown) {
 }
 
 export async function trackOrder(reference: unknown) {
+  const rawInput = typeof reference === "string" ? reference.trim() : "";
   const code = trackingInput(reference);
-  const variants = [code];
-  if (code.startsWith("MJ")) {
-    variants.push(code.slice(2));
-  } else if (/^\d+$/.test(code)) {
-    variants.push(`MJ-${code}`, `MJ${code}`);
-  }
+  const pureDigits = code.startsWith("MJ") ? code.slice(2) : code;
+  
+  const variants = Array.from(new Set([
+    rawInput,
+    code,
+    pureDigits,
+    `MJ-${pureDigits}`,
+    `MJ${pureDigits}`,
+  ])).filter(Boolean);
+
   const order = await prisma.order.findFirst({ where: { trackingNumber: { in: variants } }, select: {
     trackingNumber: true, status: true, createdAt: true, completedAt: true,
     cancelledAt: true, cancellationNote: true,
