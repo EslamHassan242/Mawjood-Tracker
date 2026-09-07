@@ -69,6 +69,14 @@ customer records to resolve a server connection configuration problem.
 
 ## Verification
 
+If existing area/route screens return HTTP 500 after deployment, run
+`node scripts/check-intake-db.mjs`. It checks for missing intake columns, lists
+migration status, and verifies the Prisma queries without printing customer data
+or connection strings. A deployment built with the new Prisma schema requires
+the intake migration even on older screens: `findMany()` selects the new columns.
+Use `npx prisma migrate deploy` to apply pending migrations before serving the
+new build. Rebuilding Prisma or clearing PWA caches does not add database columns.
+
 Run `npm run test:intake`, `npx tsc --noEmit`, and `npm run build`.
 The tests use isolated PGlite PostgreSQL, not production Supabase. They cover the
 permission matrix, Arabic validation, additive migration, route uniqueness,
