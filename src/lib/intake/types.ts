@@ -3,6 +3,7 @@ export interface IntakeRoute {
   id: string; fromAreaId: string; toAreaId: string;
   fromArea: IntakeArea; toArea: IntakeArea;
   isOpen: boolean; isActive: boolean; availabilityVersion: number;
+  requireSenderPhone?: boolean; requireReceiverPhone?: boolean;
   price?: number;
 }
 export interface OrderInput {

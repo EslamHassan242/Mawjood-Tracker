@@ -36,12 +36,22 @@ test('feature permissions preserve operational boundaries', () => {
   assert.equal(hasPermission('UNKNOWN', 'Orders.View'), false);
 });
 
-test('validation normalizes Arabic phone digits and rejects invalid or oversized input', () => {
+test('validation normalizes Arabic phone digits and strictly validates Egyptian numbers', () => {
   const valid = { routeId: 'r', pickupBuilding: '١٥', deliveryBuilding: '22', senderPhone: '٠١٢٣٤٥٦٧٨٩٠', receiverPhone: '+20 (101) 234-5678' };
   const result = orderInput(valid);
   assert.equal(result.senderPhone, '01234567890');
-  assert.equal(result.receiverPhone, '+201012345678');
+  assert.equal(result.receiverPhone, '01012345678');
   assert.equal(result.notes, '');
+
+  // Test optional phones for routes
+  const optionalRoute = { requireSenderPhone: false, requireReceiverPhone: false };
+  const optResult = orderInput({ routeId: 'r', pickupBuilding: '1', deliveryBuilding: '2', senderPhone: '', receiverPhone: '  ' }, optionalRoute);
+  assert.equal(optResult.senderPhone, '');
+  assert.equal(optResult.receiverPhone, '');
+
+  // Strict Egyptian phone validation failures
+  assert.throws(() => orderInput({ ...valid, receiverPhone: '01312345678' })); // Prefix 013 is not valid Egyptian mobile
+  assert.throws(() => orderInput({ ...valid, receiverPhone: '010123456' })); // Too short
   assert.throws(() => orderInput({ ...valid, receiverPhone: 'javascript:alert(1)' }));
   assert.throws(() => orderInput({ ...valid, pickupBuilding: ' ' }));
   assert.throws(() => orderInput({ ...valid, notes: 'x'.repeat(1001) }));

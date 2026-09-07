@@ -11,8 +11,8 @@ export function generateShortTrackingNumber(): string {
 
 export async function createOrder(input: unknown, publicOnly: boolean) {
   const user = publicOnly ? null : await requirePermission("Orders.Create");
-  const data = orderInput(input);
   const raw = objectInput(input);
+  const routeId = textInput(raw.routeId, "المسار", 100);
   const key = textInput(raw.requestKey, "رمز الطلب", 80);
   if (!/^[0-9a-f-]{36}$/i.test(key)) throw new IntakeError("رمز الطلب غير صحيح.");
   // Namespace internal retries by actor. Only acknowledge public retries; never return PII.
@@ -22,7 +22,8 @@ export async function createOrder(input: unknown, publicOnly: boolean) {
       return await prisma.$transaction(async tx => {
         const existing = await tx.order.findUnique({ where: { requestKey }, select: { trackingNumber: true } });
         if (existing) return { success: true, trackingNumber: existing.trackingNumber };
-        const route = await lockRoute(tx, data.routeId, publicOnly);
+        const route = await lockRoute(tx, routeId, publicOnly);
+        const data = orderInput(input, route);
         const trackingNumber = generateShortTrackingNumber();
         const order = await tx.order.create({ data: { ...data, requestKey, trackingNumber,
           fromAreaName: route.fromArea.nameAr!, toAreaName: route.toArea.nameAr!,

@@ -13,20 +13,36 @@ export function textInput(value: unknown, label: string, max: number, optional =
     throw new IntakeError(`يرجى إدخال ${label} بشكل صحيح (بحد أقصى ${max} حرفًا).`);
   return value.trim();
 }
-export function phoneInput(value: unknown, label: string): string {
-  const phone = textInput(value, label, 30).replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632))
-    .replace(/[۰-۹]/g, c => String(c.charCodeAt(0) - 1776)).replace(/[\s()-]/g, "");
-  if (!/^\+?[0-9]{8,15}$/.test(phone)) throw new IntakeError(`يرجى إدخال ${label} بشكل صحيح.`);
+export function phoneInput(value: unknown, label: string, optional = false): string {
+  if (optional && (!value || (typeof value === "string" && !value.trim()))) return "";
+  let phone = textInput(value, label, 30, optional)
+    .replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632))
+    .replace(/[۰-۹]/g, c => String(c.charCodeAt(0) - 1776))
+    .replace(/[\s()-]/g, "");
+  if (!phone) {
+    if (optional) return "";
+    throw new IntakeError(`يرجى إدخال ${label}.`);
+  }
+  // Strip leading international prefix +20 or 0020
+  if (phone.startsWith("+20")) phone = "0" + phone.slice(3);
+  else if (phone.startsWith("0020")) phone = "0" + phone.slice(4);
+  else if (phone.startsWith("20") && phone.length === 12) phone = "0" + phone.slice(2);
+  
+  if (!/^01[0125][0-9]{8}$/.test(phone)) {
+    throw new IntakeError(`يرجى إدخال ${label} بشكل صحيح (رقم محمول مصري مكون من 11 رقمًا يبتدئ بـ 010/011/012/015).`);
+  }
   return phone;
 }
-export function orderInput(value: unknown): OrderInput {
+export function orderInput(value: unknown, routeConfig?: { requireSenderPhone?: boolean; requireReceiverPhone?: boolean }): OrderInput {
   const data = objectInput(value);
+  const requireSender = routeConfig?.requireSenderPhone !== false;
+  const requireReceiver = routeConfig?.requireReceiverPhone !== false;
   return {
     routeId: textInput(data.routeId, "المسار", 100),
-    pickupBuilding: textInput(data.pickupBuilding, "رقم عمارة الاستلام", 80),
-    senderPhone: phoneInput(data.senderPhone, "رقم هاتف الراسل"),
-    deliveryBuilding: textInput(data.deliveryBuilding, "رقم عمارة التسليم", 80),
-    receiverPhone: phoneInput(data.receiverPhone, "رقم هاتف المستلم"),
+    pickupBuilding: textInput(data.pickupBuilding, "مكان الاستلام", 80),
+    senderPhone: phoneInput(data.senderPhone, "رقم هاتف الراسل", !requireSender),
+    deliveryBuilding: textInput(data.deliveryBuilding, "مكان التسليم", 80),
+    receiverPhone: phoneInput(data.receiverPhone, "رقم هاتف المستلم", !requireReceiver),
     notes: textInput(data.notes, "الملاحظات", 1000, true),
   };
 }

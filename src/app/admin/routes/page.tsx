@@ -26,6 +26,8 @@ interface Route {
   toArea: Area;
   price: number;
   sortOrder: number;
+  requireSenderPhone?: boolean;
+  requireReceiverPhone?: boolean;
   isActive: boolean;
   tripsCount: number;
 }
@@ -42,6 +44,8 @@ export default function AdminRoutesPage() {
   const [toAreaId, setToAreaId] = useState("");
   const [price, setPrice] = useState("");
   const [sortOrder, setSortOrder] = useState("0");
+  const [requireSenderPhone, setRequireSenderPhone] = useState(true);
+  const [requireReceiverPhone, setRequireReceiverPhone] = useState(true);
   const [isSubmitting, setIsSubmitting] = useState(false);
 
   // Edit Price Modal state
@@ -49,6 +53,8 @@ export default function AdminRoutesPage() {
   const [editingRoute, setEditingRoute] = useState<Route | null>(null);
   const [editPrice, setEditPrice] = useState("");
   const [editSortOrder, setEditSortOrder] = useState("0");
+  const [editRequireSenderPhone, setEditRequireSenderPhone] = useState(true);
+  const [editRequireReceiverPhone, setEditRequireReceiverPhone] = useState(true);
   const [isEditing, setIsEditing] = useState(false);
 
   // Fetch routes and areas
@@ -96,6 +102,8 @@ export default function AdminRoutesPage() {
           toAreaId,
           price,
           sortOrder: parseInt(sortOrder) || 0,
+          requireSenderPhone,
+          requireReceiverPhone,
         }),
       });
 
@@ -113,6 +121,8 @@ export default function AdminRoutesPage() {
       setToAreaId("");
       setPrice("");
       setSortOrder("0");
+      setRequireSenderPhone(true);
+      setRequireReceiverPhone(true);
 
       // Refresh list
       fetchData();
@@ -137,6 +147,8 @@ export default function AdminRoutesPage() {
         body: JSON.stringify({
           price: editPrice,
           sortOrder: parseInt(editSortOrder) || 0,
+          requireSenderPhone: editRequireSenderPhone,
+          requireReceiverPhone: editRequireReceiverPhone,
         }),
       });
 
@@ -335,6 +347,8 @@ export default function AdminRoutesPage() {
                         setEditingRoute(route);
                         setEditPrice(String(route.price));
                         setEditSortOrder(String(route.sortOrder || 0));
+                        setEditRequireSenderPhone(route.requireSenderPhone !== false);
+                        setEditRequireReceiverPhone(route.requireReceiverPhone !== false);
                         setIsEditModalOpen(true);
                       }}
                       className="p-1.5 rounded-lg text-light-text-muted/70 hover:bg-gray-100 dark:hover:bg-dark-border hover:text-light-text-main dark:hover:text-dark-text-main cursor-pointer"
@@ -476,6 +490,29 @@ export default function AdminRoutesPage() {
               Routes on the captain home screen are sorted by this value (lowest first).
             </p>
           </div>
+
+          {/* Phone Number Requirements */}
+          <div className="flex flex-col gap-2 p-3 bg-light-bg dark:bg-dark-bg/60 border border-light-border dark:border-dark-border rounded-xl">
+            <span className="text-xs font-bold text-light-text-main dark:text-dark-text-main">Phone Validation Rules</span>
+            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-light-text-main dark:text-dark-text-main">
+              <input
+                type="checkbox"
+                checked={requireSenderPhone}
+                onChange={(e) => setRequireSenderPhone(e.target.checked)}
+                className="w-4 h-4 rounded text-brand-green-500 border-light-border dark:border-dark-border focus:ring-brand-green-500"
+              />
+              <span>Require Sender Phone Number</span>
+            </label>
+            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-light-text-main dark:text-dark-text-main">
+              <input
+                type="checkbox"
+                checked={requireReceiverPhone}
+                onChange={(e) => setRequireReceiverPhone(e.target.checked)}
+                className="w-4 h-4 rounded text-brand-green-500 border-light-border dark:border-dark-border focus:ring-brand-green-500"
+              />
+              <span>Require Receiver Phone Number</span>
+            </label>
+          </div>
         </form>
       </Modal>
 
@@ -546,6 +583,29 @@ export default function AdminRoutesPage() {
             <p className="text-[10px] font-semibold text-light-text-muted dark:text-dark-text-muted">
               Routes on the captain home screen are sorted by this value (lowest first).
             </p>
+          </div>
+
+          {/* Phone Number Requirements */}
+          <div className="flex flex-col gap-2 p-3 bg-light-bg dark:bg-dark-bg/60 border border-light-border dark:border-dark-border rounded-xl">
+            <span className="text-xs font-bold text-light-text-main dark:text-dark-text-main">Phone Validation Rules</span>
+            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-light-text-main dark:text-dark-text-main">
+              <input
+                type="checkbox"
+                checked={editRequireSenderPhone}
+                onChange={(e) => setEditRequireSenderPhone(e.target.checked)}
+                className="w-4 h-4 rounded text-brand-green-500 border-light-border dark:border-dark-border focus:ring-brand-green-500"
+              />
+              <span>Require Sender Phone Number</span>
+            </label>
+            <label className="flex items-center gap-2 text-xs font-semibold cursor-pointer text-light-text-main dark:text-dark-text-main">
+              <input
+                type="checkbox"
+                checked={editRequireReceiverPhone}
+                onChange={(e) => setEditRequireReceiverPhone(e.target.checked)}
+                className="w-4 h-4 rounded text-brand-green-500 border-light-border dark:border-dark-border focus:ring-brand-green-500"
+              />
+              <span>Require Receiver Phone Number</span>
+            </label>
           </div>
         </form>
       </Modal>

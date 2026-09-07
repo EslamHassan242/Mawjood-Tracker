@@ -5,7 +5,7 @@ export function IntakeShell({ title, connected, children }: { title: string; con
     <header className="space-y-2">
       <h1 className="text-2xl font-extrabold text-light-text-main dark:text-dark-text-main">{title}</h1>
       <p role="status" className={`text-sm font-medium ${connected ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}>
-        {connected ? "متصل · يتم تحديث البيانات تلقائيًا" : "جاري تحديث البيانات تلقائيًا…"}
+        {/* {connected ? "متصل · يتم تحديث البيانات تلقائيًا" : "جاري تحديث البيانات تلقائيًا…"} */}
       </p>
     </header>
     {children}

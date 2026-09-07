@@ -21,7 +21,7 @@ export async function PATCH(
 
     const { id: routeId } = await params;
     const body = await request.json();
-    const { price, isActive, sortOrder } = body;
+    const { price, isActive, sortOrder, requireSenderPhone, requireReceiverPhone } = body;
 
     const dataToUpdate: any = {};
     
@@ -35,6 +35,14 @@ export async function PATCH(
 
     if (isActive !== undefined) {
       dataToUpdate.isActive = !!isActive;
+    }
+
+    if (requireSenderPhone !== undefined) {
+      dataToUpdate.requireSenderPhone = !!requireSenderPhone;
+    }
+
+    if (requireReceiverPhone !== undefined) {
+      dataToUpdate.requireReceiverPhone = !!requireReceiverPhone;
     }
 
     if (sortOrder !== undefined) {

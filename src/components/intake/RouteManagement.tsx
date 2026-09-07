@@ -36,10 +36,17 @@ export function RouteManagement() {
     <form noValidate className="space-y-3" onSubmit={event => {
       event.preventDefault(); const form = new FormData(event.currentTarget);
       const price = form.get("price");
-      void save({ kind: "route", fromAreaId: form.get("fromAreaId"), toAreaId: form.get("toAreaId"), price: price === "" ? null : Number(price) });
+      void save({ kind: "route", fromAreaId: form.get("fromAreaId"), toAreaId: form.get("toAreaId"),
+        price: price === "" ? null : Number(price),
+        requireSenderPhone: form.has("requireSenderPhone"),
+        requireReceiverPhone: form.has("requireReceiverPhone") });
     }}>
       <div className="grid gap-3 sm:grid-cols-2">{([ ["fromAreaId", "منطقة الاستلام"], ["toAreaId", "منطقة التسليم"] ] as const).map(([name, label]) => <label key={name} className="space-y-2"><span>{label}</span><select name={name} className={fieldClass} disabled={busy}><option value="">اختر المنطقة</option>{data?.areas.filter(a => a.isActive && a.nameAr).map(area => <option key={area.id} value={area.id}>{areaLabel(area)}</option>)}</select></label>)}</div>
       <label className="block space-y-2"><span>سعر المشوار (جنيه)</span><input className={fieldClass} type="number" name="price" min="0" step="0.01" disabled={busy} /></label>
+      <div className="flex flex-wrap gap-4 text-sm font-medium">
+        <label className="flex items-center gap-2"><input type="checkbox" name="requireSenderPhone" defaultChecked disabled={busy} />طلب رقم هاتف الراسل (إجباري)</label>
+        <label className="flex items-center gap-2"><input type="checkbox" name="requireReceiverPhone" defaultChecked disabled={busy} />طلب رقم هاتف المستلم (إجباري)</label>
+      </div>
       <Button disabled={busy}>إضافة مسار</Button>
     </form>
     <h2 className="text-lg font-bold">تفعيل المسارات</h2>
@@ -48,13 +55,20 @@ export function RouteManagement() {
       if (window.confirm(route.isActive ? "هل تريد تعطيل هذا المسار؟" : "هل تريد تفعيل هذا المسار؟")) void save({ kind: "route", id: route.id, isActive: !route.isActive }, "PATCH");
     }}>{route.isActive ? "تعطيل المسار" : "تفعيل المسار"}</Button></div>
       <details><summary className="cursor-pointer text-sm underline">تعديل تعريف المسار وسعره</summary>
-        <form noValidate key={`${route.fromAreaId}-${route.toAreaId}-${route.price}`} className="mt-3 space-y-3" onSubmit={event => {
+        <form noValidate key={`${route.fromAreaId}-${route.toAreaId}-${route.price}-${route.requireSenderPhone}-${route.requireReceiverPhone}`} className="mt-3 space-y-3" onSubmit={event => {
           event.preventDefault(); const form = new FormData(event.currentTarget);
-          void save({ kind: "route", id: route.id, fromAreaId: form.get("fromAreaId"), toAreaId: form.get("toAreaId"), price: form.get("price") === "" ? null : Number(form.get("price")) }, "PATCH");
+          void save({ kind: "route", id: route.id, fromAreaId: form.get("fromAreaId"), toAreaId: form.get("toAreaId"),
+            price: form.get("price") === "" ? null : Number(form.get("price")),
+            requireSenderPhone: form.has("requireSenderPhone"),
+            requireReceiverPhone: form.has("requireReceiverPhone") }, "PATCH");
         }}>
           <p className="text-sm">حفظ التعديلات يغلق الاستقبال. يمكن تغيير المناطق فقط إذا لم توجد طلبات أو مشاوير مرتبطة بالمسار.</p>
           {([ ["fromAreaId", "منطقة الاستلام"], ["toAreaId", "منطقة التسليم"] ] as const).map(([name, label]) => <label key={name} className="block space-y-2"><span>{label}</span><select name={name} defaultValue={route[name]} className={fieldClass} disabled={busy}>{data.areas.map(area => <option key={area.id} value={area.id}>{areaLabel(area)}</option>)}</select></label>)}
           <label className="block space-y-2"><span>سعر المشوار (جنيه)</span><input className={fieldClass} name="price" type="number" min="0" step="0.01" defaultValue={route.price} disabled={busy} /></label>
+          <div className="flex flex-wrap gap-4 text-sm font-medium">
+            <label className="flex items-center gap-2"><input type="checkbox" name="requireSenderPhone" defaultChecked={route.requireSenderPhone !== false} disabled={busy} />طلب رقم هاتف الراسل (إجباري)</label>
+            <label className="flex items-center gap-2"><input type="checkbox" name="requireReceiverPhone" defaultChecked={route.requireReceiverPhone !== false} disabled={busy} />طلب رقم هاتف المستلم (إجباري)</label>
+          </div>
           <Button disabled={busy}>حفظ المسار</Button>
         </form>
       </details>

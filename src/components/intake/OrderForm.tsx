@@ -16,13 +16,16 @@ export function OrderForm({ routes, initial, publicOnly = false, onSave, onCance
   const [requestKey] = useState(() => crypto.randomUUID());
   const selected = routes.find(r => r.id === routeId);
   const closed = publicOnly && routeId !== "" && !selected;
+  const requireSender = selected ? selected.requireSenderPhone !== false : true;
+  const requireReceiver = selected ? selected.requireReceiverPhone !== false : true;
+
   return <form noValidate className="space-y-4 rounded-2xl border border-light-border bg-white p-5 text-light-text-main shadow-sm dark:border-dark-border dark:bg-dark-card dark:text-dark-text-main" onSubmit={async event => {
     event.preventDefault();
     if (busy) return;
     setError("");
     const form = new FormData(event.currentTarget);
     try {
-      const input = orderInput({ routeId, ...Object.fromEntries(form.entries()) });
+      const input = orderInput({ routeId, ...Object.fromEntries(form.entries()) }, selected || undefined);
       if (closed) throw new Error("تم إغلاق هذه الرحلة. اختر رحلة متاحة.");
       setBusy(true);  
       await onSave({ ...input, requestKey });
@@ -41,14 +44,15 @@ export function OrderForm({ routes, initial, publicOnly = false, onSave, onCance
     {(routeId || initial) && <>
       <div className="grid gap-4 sm:grid-cols-2">
         {([
-          ["pickupBuilding", "من ", "text", 80],
-          ["senderPhone", "رقم هاتف الراسل", "tel", 30],
-          ["deliveryBuilding", "الى", "text", 80],
-          ["receiverPhone", "رقم هاتف المستلم", "tel", 30],
-        ] as const).map(([name, label, type, maxLength]) => <label key={name} className="block space-y-2">
+          ["pickupBuilding", "من ", "text", 80, true],
+          ["senderPhone", requireSender ? "رقم هاتف الراسل" : "رقم هاتف الراسل (اختياري)", "tel", 30, requireSender],
+          ["deliveryBuilding", "الى", "text", 80, true],
+          ["receiverPhone", requireReceiver ? "رقم هاتف المستلم" : "رقم هاتف المستلم (اختياري)", "tel", 30, requireReceiver],
+        ] as const).map(([name, label, type, maxLength, required]) => <label key={name} className="block space-y-2">
           <span className="font-semibold text-light-text-main dark:text-dark-text-main">{label}</span>
-          <input name={name} type={type} dir={type === "tel" ? "ltr" : undefined} required maxLength={maxLength}
-            defaultValue={initial?.[name] || ""} disabled={busy} className={fieldClass} />
+          <input name={name} type={type} dir={type === "tel" ? "ltr" : undefined} required={required} maxLength={maxLength}
+            defaultValue={initial?.[name as keyof OrderView] as string || ""} disabled={busy} className={fieldClass}
+            placeholder={type === "tel" ? "01012345678" : undefined} />
         </label>)}
       </div>
       <label className="block space-y-2"><span className="font-semibold text-light-text-main dark:text-dark-text-main">ملاحظات </span>

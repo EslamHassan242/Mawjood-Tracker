@@ -44,6 +44,8 @@ model Route {
   availabilityChangedAt DateTime?
   availabilityChangedBy String?
   sortOrder  Int      @default(0)
+  requireSenderPhone   Boolean  @default(true)
+  requireReceiverPhone Boolean  @default(true)
   createdAt  DateTime @default(now())
 
   fromArea Area         @relation("FromArea", fields: [fromAreaId], references: [id])

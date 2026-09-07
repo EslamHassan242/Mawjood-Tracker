@@ -65,6 +65,9 @@ export async function manageArea(id: string | null, input: unknown) {
 export async function manageRoute(id: string | null, input: unknown) {
   await requirePermission("Routes.Manage");
   const data = objectInput(input);
+  const requireSenderPhone = data.requireSenderPhone !== undefined ? Boolean(data.requireSenderPhone) : undefined;
+  const requireReceiverPhone = data.requireReceiverPhone !== undefined ? Boolean(data.requireReceiverPhone) : undefined;
+
   if (id) {
     if (data.isActive !== undefined && typeof data.isActive !== "boolean") throw new IntakeError("حالة المسار غير صحيحة.");
     if (data.price !== undefined && (typeof data.price !== "number" || !Number.isFinite(data.price) || data.price < 0)) throw new IntakeError("يرجى إدخال سعر صحيح للمسار.");
@@ -80,6 +83,8 @@ export async function manageRoute(id: string | null, input: unknown) {
           throw new IntakeError("هذا المسار مرتبط بطلبات أو مشاوير. أضف مسارًا جديدًا للحفاظ على السجل.", 409);
       }
       return tx.route.update({ where: { id }, data: { fromAreaId, toAreaId,
+        ...(requireSenderPhone !== undefined ? { requireSenderPhone } : {}),
+        ...(requireReceiverPhone !== undefined ? { requireReceiverPhone } : {}),
         ...(data.isActive !== undefined ? { isActive: data.isActive as boolean } : {}),
         ...(data.price !== undefined ? { price: data.price as number } : {}),
         isOpen: false, availabilityVersion: { increment: 1 } } });
@@ -88,7 +93,11 @@ export async function manageRoute(id: string | null, input: unknown) {
   const fromAreaId = textInput(data.fromAreaId, "منطقة الاستلام", 100);
   const toAreaId = textInput(data.toAreaId, "منطقة التسليم", 100);
   if (typeof data.price !== "number" || !Number.isFinite(data.price) || data.price < 0) throw new IntakeError("يرجى إدخال سعر صحيح للمسار.");
-  return prisma.route.create({ data: { fromAreaId, toAreaId, price: data.price } });
+  return prisma.route.create({ data: {
+    fromAreaId, toAreaId, price: data.price,
+    requireSenderPhone: requireSenderPhone ?? true,
+    requireReceiverPhone: requireReceiverPhone ?? true,
+  } });
 }
 
 export async function listAreas() {
