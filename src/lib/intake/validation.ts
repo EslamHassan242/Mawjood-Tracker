@@ -8,14 +8,27 @@ export function objectInput(value: unknown): Record<string, unknown> {
   return value as Record<string, unknown>;
 }
 export function textInput(value: unknown, label: string, max: number, optional = false): string {
-  if (optional && value === undefined) return "";
-  if (typeof value !== "string" || (!optional && !value.trim()) || value.trim().length > max)
-    throw new IntakeError(`يرجى إدخال ${label} بشكل صحيح (بحد أقصى ${max} حرفًا).`);
-  return value.trim();
+  if (optional && (!value || (typeof value === "string" && !value.trim()))) return "";
+  if (value === undefined || value === null || (typeof value === "string" && !value.trim())) {
+    throw new IntakeError(`يرجى إدخال ${label}.`);
+  }
+  if (typeof value !== "string") {
+    throw new IntakeError(`يرجى إدخال ${label} بشكل صحيح.`);
+  }
+  const trimmed = value.trim();
+  if (trimmed.length > max) {
+    throw new IntakeError(`يرجى إدخال ${label} (بحد أقصى ${max} حرفًا).`);
+  }
+  return trimmed;
 }
 export function phoneInput(value: unknown, label: string, optional = false): string {
   if (optional && (!value || (typeof value === "string" && !value.trim()))) return "";
-  let phone = textInput(value, label, 30, optional)
+  let phone = textInput(value, label, 30, optional);
+  if (!phone) {
+    if (optional) return "";
+    throw new IntakeError(`يرجى إدخال ${label}.`);
+  }
+  phone = phone
     .replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632))
     .replace(/[۰-۹]/g, c => String(c.charCodeAt(0) - 1776))
     .replace(/[\s()-]/g, "");

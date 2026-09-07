@@ -43,10 +43,29 @@ export async function createOrder(input: unknown, publicOnly: boolean) {
   throw new IntakeError("تعذر إنشاء رقم متابعة للطلب. حاول مجددًا.");
 }
 
-export async function listOrders(history: boolean, cursor?: string) {
+export async function listOrders(history: boolean, cursor?: string, startDate?: string, endDate?: string) {
   const user = await requirePermission(history ? "Orders.ViewHistory" : "Orders.View");
+  const whereClause: Record<string, unknown> = {
+    status: history ? { in: ["COMPLETED", "CANCELLED"] } : "ACTIVE",
+  };
+
+  if (history && (startDate || endDate)) {
+    const createdAtWhere: Record<string, unknown> = {};
+    if (startDate) {
+      createdAtWhere.gte = new Date(startDate);
+    }
+    if (endDate) {
+      const endD = new Date(endDate);
+      if (endDate.length <= 10) {
+        endD.setHours(23, 59, 59, 999);
+      }
+      createdAtWhere.lte = endD;
+    }
+    whereClause.createdAt = createdAtWhere;
+  }
+
   const orders = await prisma.order.findMany({
-    where: { status: history ? { in: ["COMPLETED", "CANCELLED"] } : "ACTIVE" },
+    where: whereClause,
     orderBy: [{ createdAt: history ? "desc" : "asc" }, { id: history ? "desc" : "asc" }],
     ...(history ? { take: 50, ...(cursor ? { cursor: { id: cursor }, skip: 1 } : {}) } : {}),
     // Do not serialize retry keys or internal audit actor identifiers.

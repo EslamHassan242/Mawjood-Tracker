@@ -5,6 +5,8 @@ export async function GET() { return apiResult(async () => ({
   routes: (await listRoutes(true)).map(r => ({
     id: r.id, fromArea: { id: r.fromArea.id, nameAr: r.fromArea.nameAr },
     toArea: { id: r.toArea.id, nameAr: r.toArea.nameAr }, isOpen: true, isActive: true,
+    requireSenderPhone: r.requireSenderPhone !== false,
+    requireReceiverPhone: r.requireReceiverPhone !== false,
   })),
 })); }
 

@@ -11,8 +11,26 @@ import { OrderForm } from "./OrderForm";
 export default function OrdersPage({ captain = false }: { captain?: boolean }) {
   const [history, setHistory] = useState(false);
   const [cursor, setCursor] = useState("");
+  const [dateFilter, setDateFilter] = useState<"all" | "today" | "custom_day" | "range">("all");
+  const [customDate, setCustomDate] = useState("");
+  const [startDate, setStartDate] = useState("");
+  const [endDate, setEndDate] = useState("");
+
+  let dateParams = "";
+  if (history) {
+    if (dateFilter === "today") {
+      const today = new Date().toISOString().split("T")[0];
+      dateParams = `&startDate=${today}&endDate=${today}`;
+    } else if (dateFilter === "custom_day" && customDate) {
+      dateParams = `&startDate=${customDate}&endDate=${customDate}`;
+    } else if (dateFilter === "range") {
+      if (startDate) dateParams += `&startDate=${startDate}`;
+      if (endDate) dateParams += `&endDate=${endDate}`;
+    }
+  }
+
   const { data, error, connected, refresh } = useIntakeLive<{ orders: OrderView[]; role: string; nextCursor: string | null }>(
-    `/api/intake/orders?history=${history}&cursor=${encodeURIComponent(cursor)}`, true);
+    `/api/intake/orders?history=${history}&cursor=${encodeURIComponent(cursor)}${dateParams}`, true);
   const routeState = useIntakeLive<{ routes: IntakeRoute[] }>("/api/intake/routes");
   const [editing, setEditing] = useState<OrderView | null>(null);
   const [creating, setCreating] = useState(false);
@@ -41,6 +59,56 @@ export default function OrdersPage({ captain = false }: { captain?: boolean }) {
       {hasPermission(role, "Orders.ViewHistory") && <Button variant={history ? "primary" : "outline"} onClick={() => { setHistory(true); setCursor(""); setEditing(null); }}>سجل الطلبات</Button>}
       {hasPermission(role, "Orders.Create") && <Button onClick={() => { setCreating(true); setEditing(null); }}>إضافة طلب يدوي</Button>}
     </nav>
+
+    {history && (
+      <div className="flex flex-wrap items-center gap-3 p-4 rounded-2xl border border-light-border bg-white dark:border-dark-border dark:bg-dark-card shadow-xs text-sm">
+        <span className="font-bold text-light-text-main dark:text-dark-text-main">تصفية السجل بالتاريخ:</span>
+        <select
+          className="rounded-xl border border-light-border bg-white px-3 py-1.5 font-semibold text-light-text-main dark:border-dark-border dark:bg-dark-bg dark:text-dark-text-main focus:outline-none focus:ring-2 focus:ring-emerald-500/20"
+          value={dateFilter}
+          onChange={(e) => {
+            setDateFilter(e.target.value as any);
+            setCursor("");
+          }}
+        >
+          <option value="all">جميع التواريخ</option>
+          <option value="today">اليوم فقط</option>
+          <option value="custom_day">يوم محدد</option>
+          <option value="range">فترة محددة (من - إلى)</option>
+        </select>
+
+        {dateFilter === "custom_day" && (
+          <div className="flex items-center gap-2">
+            <label className="font-semibold text-xs text-light-text-muted dark:text-dark-text-muted">اليوم:</label>
+            <input
+              type="date"
+              value={customDate}
+              onChange={(e) => { setCustomDate(e.target.value); setCursor(""); }}
+              className="rounded-xl border border-light-border bg-white px-3 py-1.5 font-semibold text-light-text-main dark:border-dark-border dark:bg-dark-bg dark:text-dark-text-main focus:outline-none"
+            />
+          </div>
+        )}
+
+        {dateFilter === "range" && (
+          <div className="flex flex-wrap items-center gap-2">
+            <label className="font-semibold text-xs text-light-text-muted dark:text-dark-text-muted">من:</label>
+            <input
+              type="date"
+              value={startDate}
+              onChange={(e) => { setStartDate(e.target.value); setCursor(""); }}
+              className="rounded-xl border border-light-border bg-white px-3 py-1.5 font-semibold text-light-text-main dark:border-dark-border dark:bg-dark-bg dark:text-dark-text-main focus:outline-none"
+            />
+            <label className="font-semibold text-xs text-light-text-muted dark:text-dark-text-muted">إلى:</label>
+            <input
+              type="date"
+              value={endDate}
+              onChange={(e) => { setEndDate(e.target.value); setCursor(""); }}
+              className="rounded-xl border border-light-border bg-white px-3 py-1.5 font-semibold text-light-text-main dark:border-dark-border dark:bg-dark-bg dark:text-dark-text-main focus:outline-none"
+            />
+          </div>
+        )}
+      </div>
+    )}
     <Notice error message={error || actionError} /><Notice message={message} />
     {data && (creating || editing) && <div className="space-y-3">
       <h2 className="font-bold">{editing ? "تعديل بيانات الطلب" : "إضافة طلب يدوي"}</h2>
