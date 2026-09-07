@@ -4,6 +4,11 @@ import { requirePermission } from "./server";
 import { lockRoute } from "./routes";
 import { IntakeError, objectInput, orderInput, textInput, versionInput, trackingInput } from "./validation";
 
+export function generateShortTrackingNumber(): string {
+  const digits = Math.floor(100000 + Math.random() * 900000).toString();
+  return `MJ-${digits}`;
+}
+
 export async function createOrder(input: unknown, publicOnly: boolean) {
   const user = publicOnly ? null : await requirePermission("Orders.Create");
   const data = orderInput(input);
@@ -12,23 +17,29 @@ export async function createOrder(input: unknown, publicOnly: boolean) {
   if (!/^[0-9a-f-]{36}$/i.test(key)) throw new IntakeError("رمز الطلب غير صحيح.");
   // Namespace internal retries by actor. Only acknowledge public retries; never return PII.
   const requestKey = `${user?.id || "public"}:${key}`;
-  try {
-    return await prisma.$transaction(async tx => {
-      const existing = await tx.order.findUnique({ where: { requestKey }, select: { trackingNumber: true } });
-      if (existing) return { success: true, trackingNumber: existing.trackingNumber };
-      const route = await lockRoute(tx, data.routeId, publicOnly);
-      const order = await tx.order.create({ data: { ...data, requestKey,
-        fromAreaName: route.fromArea.nameAr!, toAreaName: route.toArea.nameAr!,
-        source: publicOnly ? "PUBLIC" : "INTERNAL", createdBy: user?.id, updatedBy: user?.id } });
-      return { success: true, trackingNumber: order.trackingNumber };
-    });
-  } catch (error) {
-    if ((error as { code?: string }).code === "P2002") {
-      const existing = await prisma.order.findUnique({ where: { requestKey }, select: { trackingNumber: true } });
-      if (existing) return { success: true, trackingNumber: existing.trackingNumber };
+  for (let attempt = 0; attempt < 5; attempt++) {
+    try {
+      return await prisma.$transaction(async tx => {
+        const existing = await tx.order.findUnique({ where: { requestKey }, select: { trackingNumber: true } });
+        if (existing) return { success: true, trackingNumber: existing.trackingNumber };
+        const route = await lockRoute(tx, data.routeId, publicOnly);
+        const trackingNumber = generateShortTrackingNumber();
+        const order = await tx.order.create({ data: { ...data, requestKey, trackingNumber,
+          fromAreaName: route.fromArea.nameAr!, toAreaName: route.toArea.nameAr!,
+          source: publicOnly ? "PUBLIC" : "INTERNAL", createdBy: user?.id, updatedBy: user?.id } });
+        return { success: true, trackingNumber: order.trackingNumber };
+      });
+    } catch (error) {
+      if ((error as { code?: string }).code === "P2002") {
+        const existing = await prisma.order.findUnique({ where: { requestKey }, select: { trackingNumber: true } });
+        if (existing) return { success: true, trackingNumber: existing.trackingNumber };
+        // If it was a trackingNumber collision, loop and retry with a new short code
+      } else {
+        throw error;
+      }
     }
-    throw error;
   }
+  throw new IntakeError("تعذر إنشاء رقم متابعة للطلب. حاول مجددًا.");
 }
 
 export async function listOrders(history: boolean, cursor?: string) {
@@ -78,8 +89,14 @@ export async function updateOrder(id: string, input: unknown) {
 }
 
 export async function trackOrder(reference: unknown) {
-  const trackingNumber = trackingInput(reference);
-  const order = await prisma.order.findUnique({ where: { trackingNumber }, select: {
+  const code = trackingInput(reference);
+  const variants = [code];
+  if (code.startsWith("MJ")) {
+    variants.push(code.slice(2));
+  } else if (/^\d+$/.test(code)) {
+    variants.push(`MJ-${code}`, `MJ${code}`);
+  }
+  const order = await prisma.order.findFirst({ where: { trackingNumber: { in: variants } }, select: {
     trackingNumber: true, status: true, createdAt: true, completedAt: true,
     cancelledAt: true, cancellationNote: true,
   } });

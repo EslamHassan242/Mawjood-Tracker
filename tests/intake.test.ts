@@ -136,11 +136,12 @@ test('tracking numbers are backfilled, unique, and support pasted formatted refe
   const rows = (await db.query<{ trackingNumber: string }>('SELECT "trackingNumber" FROM "Order"')).rows;
   assert.ok(rows.length >= 2);
   assert.equal(new Set(rows.map(row => row.trackingNumber)).size, rows.length);
-  for (const row of rows) assert.match(row.trackingNumber, /^[A-F0-9]{32}$/);
   const reference = rows[0].trackingNumber;
   assert.equal(trackingInput(reference.toLowerCase().match(/.{1,8}/g)!.join('-')), reference);
+  assert.equal(trackingInput('mj-123456'), 'MJ123456');
+  assert.equal(trackingInput('MJ-١٢٣٤٥٦'), 'MJ123456');
   assert.throws(() => trackingInput('1'));
-  assert.throws(() => trackingInput('not-a-reference'));
+  assert.throws(() => trackingInput(''));
   await assert.rejects(db.query(`UPDATE "Order" SET "trackingNumber" = $1 WHERE id = 'o'`, [(await db.query<{ trackingNumber: string }>(`SELECT "trackingNumber" FROM "Order" WHERE id = 'legacy'`)).rows[0].trackingNumber]), /unique/i);
 });
 

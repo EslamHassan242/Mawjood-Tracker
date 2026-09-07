@@ -23,8 +23,8 @@ export function OrderForm({ routes, initial, publicOnly = false, onSave, onCance
     const form = new FormData(event.currentTarget);
     try {
       const input = orderInput({ routeId, ...Object.fromEntries(form.entries()) });
-      if (closed) throw new Error("تم إغلاق هذا المسار. يرجى اختيار مسار متاح.");
-      setBusy(true);
+      if (closed) throw new Error("تم إغلاق هذه الرحلة. اختر رحلة متاحة.");
+      setBusy(true);  
       await onSave({ ...input, requestKey });
     } catch (err) { setError((err as Error).message); }
     finally { setBusy(false); }
@@ -32,18 +32,18 @@ export function OrderForm({ routes, initial, publicOnly = false, onSave, onCance
     {initial ? <p className="font-bold text-lg">من {initial.fromAreaName} إلى {initial.toAreaName}</p> :
       <label className="block space-y-2"><span className="font-semibold text-light-text-main dark:text-dark-text-main">مسار التوصيل</span>
         <select className={fieldClass} value={routeId} onChange={e => setRouteId(e.target.value)} disabled={busy}>
-          <option value="" className="bg-white text-gray-900 dark:bg-gray-900 dark:text-white">اختر مسارًا</option>
+          <option value="" className="bg-white text-gray-900 dark:bg-gray-900 dark:text-white">اختر رحلة</option>
           {closed && <option value={routeId} className="bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200">المسار المحدد مغلق حاليًا</option>}
           {routes.map(route => <option key={route.id} value={route.id} className="bg-white text-gray-900 dark:bg-gray-900 dark:text-white">{routeLabel(route)}{!publicOnly && !route.isOpen ? " (مغلق للطلبات العامة)" : ""}</option>)}
         </select>
       </label>}
-    {closed && <Notice error message="تم إغلاق استقبال الطلبات لهذا المسار منذ قليل. يمكنك الاحتفاظ بالبيانات واختيار مسار آخر متاح." />}
+    {closed && <Notice error message="تم إغلاق استقبال الطلبات لهذة الرحلة. يمكنك الاحتفاظ بالبيانات واختيار رحلة آخر متاحة." />}
     {(routeId || initial) && <>
       <div className="grid gap-4 sm:grid-cols-2">
         {([
-          ["pickupBuilding", "رقم عمارة الاستلام", "text", 80],
+          ["pickupBuilding", "من ", "text", 80],
           ["senderPhone", "رقم هاتف الراسل", "tel", 30],
-          ["deliveryBuilding", "رقم عمارة التسليم", "text", 80],
+          ["deliveryBuilding", "الى", "text", 80],
           ["receiverPhone", "رقم هاتف المستلم", "tel", 30],
         ] as const).map(([name, label, type, maxLength]) => <label key={name} className="block space-y-2">
           <span className="font-semibold text-light-text-main dark:text-dark-text-main">{label}</span>
@@ -51,7 +51,7 @@ export function OrderForm({ routes, initial, publicOnly = false, onSave, onCance
             defaultValue={initial?.[name] || ""} disabled={busy} className={fieldClass} />
         </label>)}
       </div>
-      <label className="block space-y-2"><span className="font-semibold text-light-text-main dark:text-dark-text-main">ملاحظات (اختياري)</span>
+      <label className="block space-y-2"><span className="font-semibold text-light-text-main dark:text-dark-text-main">ملاحظات </span>
         <textarea name="notes" rows={3} maxLength={1000} defaultValue={initial?.notes || ""} disabled={busy} className={fieldClass} />
       </label>
     </>}

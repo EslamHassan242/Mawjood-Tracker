@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import Image from "next/image";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
+import { ThemeToggle } from "@/components/ui/ThemeToggle";
 import { trackingInput } from "@/lib/intake/validation";
 import { trackingLabel, customerStatusLabels, type TrackingView } from "@/lib/intake/types";
 import { fieldClass, IntakeShell, Notice } from "./IntakeShell";
@@ -43,10 +44,13 @@ export default function TrackingPage() {
   }, []);
   return <main dir="rtl" lang="ar" className="min-h-screen bg-light-bg px-4 py-8 text-light-text-main transition-colors dark:bg-dark-bg dark:text-dark-text-main">
     <div className="mx-auto max-w-2xl space-y-6">
-      <Link href="/order" className="inline-flex items-center gap-3">
-        <Image src="/logo.png" alt="موجود للتوصيل" width={64} height={64} priority className="rounded-2xl shadow-sm" />
-        <span className="text-xl font-extrabold text-brand-green-500 dark:text-brand-green-100">موجود للتوصيل</span>
-      </Link>
+      <div className="flex items-center justify-between gap-4 border-b border-light-border pb-4 dark:border-dark-border">
+        <Link href="/order" className="inline-flex items-center gap-3">
+          <Image src="/logo.png" alt="موجود للتوصيل" width={64} height={64} priority className="rounded-2xl shadow-sm" />
+          <span className="text-xl font-extrabold text-brand-green-500 dark:text-brand-green-100">موجود للتوصيل</span>
+        </Link>
+        <ThemeToggle />
+      </div>
       <h1 className="text-2xl font-extrabold text-light-text-main dark:text-dark-text-main">متابعة طلبك</h1>
       <form noValidate className="space-y-4 rounded-2xl border border-light-border bg-white p-6 shadow-sm dark:border-dark-border dark:bg-dark-card" onSubmit={event => {
         event.preventDefault(); setError("");
@@ -57,7 +61,7 @@ export default function TrackingPage() {
       }}>
         <label className="block space-y-2">
           <span className="font-semibold text-light-text-main dark:text-dark-text-main">رقم متابعة الطلب</span>
-          <input dir="ltr" autoComplete="off" placeholder="XXXX-XXXX-XXXX-XXXX" className={fieldClass} value={input} onChange={e => setInput(e.target.value)} maxLength={50} />
+          <input dir="ltr" autoComplete="off" placeholder="MJ-123456" className={fieldClass} value={input} onChange={e => setInput(e.target.value)} maxLength={50} />
         </label>
         <Button type="submit">عرض حالة الطلب</Button>
       </form>

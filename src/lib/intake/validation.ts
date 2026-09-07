@@ -36,7 +36,13 @@ export function versionInput(value: unknown): number {
 }
 
 export function trackingInput(value: unknown): string {
-  const number = textInput(value, "رقم متابعة الطلب", 50).replace(/[\s-]/g, "").toUpperCase();
-  if (!/^[A-F0-9]{32}$/.test(number)) throw new IntakeError("يرجى إدخال رقم المتابعة كاملًا كما ظهر بعد تسجيل الطلب.");
+  const number = textInput(value, "رقم متابعة الطلب", 50)
+    .replace(/[٠-٩]/g, c => String(c.charCodeAt(0) - 1632))
+    .replace(/[۰-۹]/g, c => String(c.charCodeAt(0) - 1776))
+    .replace(/[\s-]/g, "")
+    .toUpperCase();
+  if (number.length < 4 || number.length > 50 || !/^[A-Z0-9]+$/.test(number)) {
+    throw new IntakeError("يرجى إدخال رقم متابعة الطلب بشكل صحيح.");
+  }
   return number;
 }
