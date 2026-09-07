@@ -10,11 +10,11 @@ try {
   const { rows } = await client.query(`
     SELECT table_name, column_name FROM information_schema.columns
     WHERE table_schema = 'public'
-      AND table_name IN ('Area', 'Route', 'Order', 'IntakeRevision', '_prisma_migrations')
+      AND table_name IN ('Area', 'Route', 'Order', 'IntakeRevision', 'IntakeSettings', '_prisma_migrations')
     ORDER BY table_name, ordinal_position
   `);
-  const expected = { Area: ['nameAr', 'isActive'], Route: ['isOpen', 'availabilityVersion', 'sortOrder'],
-    Order: ['id'], IntakeRevision: ['id'] };
+  const expected = { Area: ['nameAr', 'isActive', 'availabilityVersion'], Route: ['isOpen', 'availabilityVersion', 'sortOrder'],
+    Order: ['id', 'trackingNumber', 'cancellationNote'], IntakeRevision: ['id'], IntakeSettings: ['captainCanChangeAvailability'] };
   const missing = Object.entries(expected).flatMap(([table, columns]) => columns
     .filter(column => !rows.some(row => row.table_name === table && row.column_name === column))
     .map(column => `${table}.${column}`));

@@ -34,3 +34,9 @@ export function versionInput(value: unknown): number {
   if (!Number.isSafeInteger(value) || (value as number) < 0) throw new IntakeError("يرجى تحديث بيانات الصفحة والمحاولة مجددًا.");
   return value as number;
 }
+
+export function trackingInput(value: unknown): string {
+  const number = textInput(value, "رقم متابعة الطلب", 50).replace(/[\s-]/g, "").toUpperCase();
+  if (!/^[A-F0-9]{32}$/.test(number)) throw new IntakeError("يرجى إدخال رقم المتابعة كاملًا كما ظهر بعد تسجيل الطلب.");
+  return number;
+}

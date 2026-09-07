@@ -12,8 +12,8 @@ export const BottomNav: React.FC = () => {
   const navItems = [
     { label: "الطلبات", href: "/captain/orders", icon: <LayoutGrid size={22} /> },
     {
-      label: "Routes",
-      href: "/captain",
+      label: "المشاوير",
+      href: "/captain/trips",
       icon: <LayoutGrid size={22} />,
     },
     {

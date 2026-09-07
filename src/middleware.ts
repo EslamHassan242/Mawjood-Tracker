@@ -28,7 +28,7 @@ export default auth((req) => {
       if (isAdminUser) {
         return NextResponse.redirect(new URL("/admin", nextUrl));
       } else {
-        return NextResponse.redirect(new URL("/captain", nextUrl));
+        return NextResponse.redirect(new URL("/captain/orders", nextUrl));
       }
     }
     return NextResponse.next();
@@ -50,14 +50,14 @@ export default auth((req) => {
     }
     // Captain trying to access admin routes → redirect to captain dashboard
     if (isAdminRoute && !isAdminUser) {
-      return NextResponse.redirect(new URL("/captain", nextUrl));
+      return NextResponse.redirect(new URL("/captain/orders", nextUrl));
     }
     // Root route redirect
     if (nextUrl.pathname === "/") {
       if (isAdminUser) {
         return NextResponse.redirect(new URL("/admin", nextUrl));
       } else {
-        return NextResponse.redirect(new URL("/captain", nextUrl));
+        return NextResponse.redirect(new URL("/captain/orders", nextUrl));
       }
     }
   }

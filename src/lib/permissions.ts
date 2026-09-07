@@ -39,10 +39,17 @@ export const FEATURE_PERMISSIONS = {
   "Orders.ViewHistory": ["SUPER_ADMIN", "ADMIN", "CAPTAIN"],
   "Routes.View": ["SUPER_ADMIN", "ADMIN", "MODERATOR", "CAPTAIN"],
   "Routes.ChangeAvailability": ["SUPER_ADMIN", "ADMIN", "MODERATOR", "CAPTAIN"],
+  "Routes.ChangeAreaAvailability": ["SUPER_ADMIN", "ADMIN", "CAPTAIN"],
+  "Routes.ConfigureCaptain": ["SUPER_ADMIN", "ADMIN"],
   "Routes.Manage": ["SUPER_ADMIN", "ADMIN"],
 } as const;
 
 export type FeaturePermission = keyof typeof FEATURE_PERMISSIONS;
 export function hasPermission(role: string, permission: FeaturePermission): boolean {
   return (FEATURE_PERMISSIONS[permission] as readonly string[]).includes(role);
+}
+
+export function canChangeIntake(role: string, captainAllowed: boolean, area = false): boolean {
+  return hasPermission(role, area ? "Routes.ChangeAreaAvailability" : "Routes.ChangeAvailability") &&
+    (role !== "CAPTAIN" || captainAllowed);
 }

@@ -3,7 +3,7 @@ import { useState } from "react";
 import Link from "next/link";
 import { Button } from "@/components/ui/Button";
 import { hasPermission } from "@/lib/permissions";
-import { statusLabels, type IntakeRoute, type OrderView } from "@/lib/intake/types";
+import { statusLabels, trackingLabel, type IntakeRoute, type OrderView } from "@/lib/intake/types";
 import { IntakeShell, Notice } from "./IntakeShell";
 import { intakeRequest, useIntakeLive } from "./useIntakeLive";
 import { OrderForm } from "./OrderForm";
@@ -23,9 +23,12 @@ export default function OrdersPage({ captain = false }: { captain?: boolean }) {
   const prefix = captain ? "/captain" : "/admin";
   async function change(order: OrderView, action: "complete" | "cancel") {
     if (!window.confirm(action === "complete" ? "هل تم توصيل هذا الطلب؟" : "هل تريد إلغاء هذا الطلب؟")) return;
+    const cancellationNote = action === "cancel" ? window.prompt("سبب الإلغاء (سيظهر للعميل — لا تكتب بيانات شخصية):") : undefined;
+    if (action === "cancel" && cancellationNote === null) return;
+    if (action === "cancel" && !cancellationNote?.trim()) { setActionError("يرجى كتابة سبب الإلغاء الذي سيظهر للعميل."); return; }
     setBusy(order.id); setActionError("");
     try {
-      await intakeRequest(`/api/intake/orders/${order.id}`, { action, version: order.version }, "PATCH");
+      await intakeRequest(`/api/intake/orders/${order.id}`, { action, version: order.version, cancellationNote }, "PATCH");
       setMessage(action === "complete" ? "تم إكمال الطلب ونقله إلى السجل." : "تم إلغاء الطلب وحفظه في السجل.");
     } catch (err) { setActionError((err as Error).message); }
     finally { setBusy(""); await refresh(); }
@@ -60,11 +63,14 @@ export default function OrdersPage({ captain = false }: { captain?: boolean }) {
       {data?.orders.map(order => <article key={order.id} className="space-y-4 rounded-2xl border border-light-border bg-white p-4 dark:border-dark-border dark:bg-dark-card">
         <div className="flex flex-wrap justify-between gap-2"><h2 className="font-extrabold">من {order.fromAreaName} إلى {order.toAreaName}</h2><span className="rounded-lg bg-emerald-50 px-2 py-1 text-sm text-emerald-900">{statusLabels[order.status]}</span></div>
         <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleString("ar-EG")} · {order.source === "PUBLIC" ? "طلب عميل" : "طلب يدوي"}</p>
+        <p className="break-all text-xs">رقم المتابعة: <bdi>{trackingLabel(order.trackingNumber)}</bdi></p>
+        <Link className="text-sm underline" target="_blank" href={`/order/track#ref=${order.trackingNumber}`}>رابط متابعة العميل</Link>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2"><h3 className="font-bold">الاستلام</h3><p className="break-words">عمارة: {order.pickupBuilding}</p><a className="block break-all text-emerald-700 underline dark:text-emerald-400" href={`tel:${order.senderPhone}`}><bdi>{order.senderPhone}</bdi><span className="block text-sm">اتصال بالراسل</span></a></div>
           <div className="space-y-2"><h3 className="font-bold">التسليم</h3><p className="break-words">عمارة: {order.deliveryBuilding}</p><a className="block break-all text-emerald-700 underline dark:text-emerald-400" href={`tel:${order.receiverPhone}`}><bdi>{order.receiverPhone}</bdi><span className="block text-sm">اتصال بالمستلم</span></a></div>
         </div>
         {order.notes && <p className="whitespace-pre-wrap break-words rounded-xl bg-gray-50 p-3 text-sm leading-7 dark:bg-gray-900">ملاحظات: {order.notes}</p>}
+        {order.cancellationNote && <p className="whitespace-pre-wrap break-words text-sm">سبب الإلغاء للعميل: {order.cancellationNote}</p>}
         {(order.completedAt || order.cancelledAt) && <p className="text-xs">{order.completedAt ? "وقت الإكمال: " : "وقت الإلغاء: "}{new Date((order.completedAt || order.cancelledAt)!).toLocaleString("ar-EG")}</p>}
         <div className="flex flex-wrap gap-2">
           {order.status === "ACTIVE" && hasPermission(role, "Orders.Complete") && <Button disabled={!!busy} onClick={() => void change(order, "complete")}>تم التوصيل</Button>}

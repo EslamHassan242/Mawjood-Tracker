@@ -3,12 +3,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 
 let client: SupabaseClient | undefined;
-function realtimeClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
-  const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY || process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
-  if (!url || !key) return null;
-  client ??= createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
-  return client;
+let clientRequest: Promise<SupabaseClient> | undefined;
+async function realtimeClient() {
+  if (client) return client;
+  clientRequest ??= intakeRequest<{ url: string; key: string }>("/api/intake/public/realtime").then(({ url, key }) => {
+    client = createClient(url, key, { auth: { persistSession: false, autoRefreshToken: false, detectSessionInUrl: false } });
+    return client;
+  }).catch(error => { clientRequest = undefined; throw error; });
+  return clientRequest;
 }
 
 export async function intakeRequest<T>(url: string, body?: unknown, method = "POST"): Promise<T> {
@@ -28,6 +30,7 @@ export function useIntakeLive<T>(url: string, operational = false) {
   const [data, setData] = useState<T | null>(null);
   const [error, setError] = useState("");
   const [connected, setConnected] = useState(false);
+  const [liveError, setLiveError] = useState("");
   const refreshRef = useRef<() => Promise<void>>(async () => {});
   const refresh = useCallback(() => refreshRef.current(), []);
   useEffect(() => {
@@ -51,16 +54,44 @@ export function useIntakeLive<T>(url: string, operational = false) {
       running = false;
     };
     refreshRef.current = load;
-    const supabase = realtimeClient();
-    const channel = supabase?.channel(`intake-${crypto.randomUUID()}`);
-    channel?.on("postgres_changes", { event: "UPDATE", schema: "public", table: "IntakeRevision", filter: "id=eq.routes" }, () => { void load(); });
-    if (operational) channel?.on("postgres_changes", { event: "UPDATE", schema: "public", table: "IntakeRevision", filter: "id=eq.orders" }, () => { void load(); });
-    channel?.subscribe(status => {
-      if (disposed) return;
-      setConnected(status === "SUBSCRIBED");
-      // Reconcile after every subscription/reconnection; missed events do not matter.
-      if (status === "SUBSCRIBED") void load();
-    });
+    let supabase: SupabaseClient | undefined;
+    let channel: ReturnType<SupabaseClient["channel"]> | undefined;
+    let retryTimer: ReturnType<typeof setTimeout> | undefined;
+    let retryDelay = 1000;
+    const retry = () => {
+      if (disposed || retryTimer) return;
+      // Connection retries only; business state is never polled.
+      retryTimer = setTimeout(() => { retryTimer = undefined; void connect(); }, retryDelay);
+      retryDelay = Math.min(retryDelay * 2, 30000);
+    };
+    const connect = async () => {
+      try {
+        if (channel && supabase) {
+          const old = channel; channel = undefined;
+          await supabase.removeChannel(old);
+        }
+        supabase = await realtimeClient();
+        if (disposed) return;
+        const subscription = supabase.channel(`intake-${crypto.randomUUID()}`);
+        channel = subscription;
+        subscription.on("postgres_changes", { event: "UPDATE", schema: "public", table: "IntakeRevision" }, payload => {
+          if (payload.new.id === "routes" || (operational && payload.new.id === "orders")) void load();
+        }).subscribe(status => {
+          if (disposed || channel !== subscription) return;
+          setConnected(status === "SUBSCRIBED");
+          if (status === "SUBSCRIBED") {
+            retryDelay = 1000; setLiveError("");
+            if (retryTimer) { clearTimeout(retryTimer); retryTimer = undefined; }
+            void load();
+          } else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
+            setLiveError("انقطع التحديث المباشر. جارٍ إعادة الاتصال…"); retry();
+          }
+        });
+      } catch (err) {
+        if (!disposed) { setConnected(false); setLiveError((err as Error).message); retry(); }
+      }
+    };
+    void connect();
     const resume = () => { if (document.visibilityState === "visible") void load(); };
     const offline = () => setConnected(false);
     document.addEventListener("visibilitychange", resume);
@@ -69,11 +100,12 @@ export function useIntakeLive<T>(url: string, operational = false) {
     void load();
     return () => {
       disposed = true;
+      if (retryTimer) clearTimeout(retryTimer);
       if (channel) void supabase?.removeChannel(channel);
       document.removeEventListener("visibilitychange", resume);
       window.removeEventListener("online", resume);
       window.removeEventListener("offline", offline);
     };
   }, [url, operational]);
-  return { data, error, connected, refresh };
+  return { data, error: error || liveError, connected, refresh };
 }

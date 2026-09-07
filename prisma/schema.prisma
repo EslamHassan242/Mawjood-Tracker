@@ -26,6 +26,7 @@ model Area {
   name      String   @unique
   nameAr    String?
   isActive  Boolean  @default(true)
+  availabilityVersion Int @default(0)
   createdAt DateTime @default(now())
 
   routesFrom Route[] @relation("FromArea")
@@ -73,6 +74,8 @@ model Order {
   status           OrderStatus @default(ACTIVE)
   source           String
   requestKey       String @unique
+  trackingNumber   String @unique @default(dbgenerated("upper(replace(gen_random_uuid()::text, '-', ''))"))
+  cancellationNote String?
   version          Int @default(0)
   createdAt        DateTime @default(now())
   updatedAt        DateTime @updatedAt
@@ -91,6 +94,14 @@ model Order {
 model IntakeRevision {
   id      String @id
   version BigInt @default(0)
+}
+
+model IntakeSettings {
+  id                          String @id @default("default")
+  captainCanChangeAvailability Boolean @default(false)
+  version                     Int @default(0)
+  updatedAt                   DateTime @default(now()) @updatedAt
+  updatedBy                   String?
 }
 
 model TripRecord {

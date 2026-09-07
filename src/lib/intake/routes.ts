@@ -1,6 +1,7 @@
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/prisma";
 import { requirePermission } from "./server";
+import { lockCaptainPermission } from "./settings";
 import { IntakeError, objectInput, versionInput, textInput } from "./validation";
 
 const includeAreas = { fromArea: true, toArea: true } as const;
@@ -37,6 +38,7 @@ export async function changeAvailability(id: string, input: unknown) {
   if (typeof data.isOpen !== "boolean") throw new IntakeError("حالة استقبال الطلبات غير صحيحة.");
   const version = versionInput(data.version);
   return prisma.$transaction(async tx => {
+    await lockCaptainPermission(tx, user.role);
     // No lock upgrade: opening validates areas under share locks, then updates the route.
     const route = await tx.route.findUnique({ where: { id } });
     if (!route) throw new IntakeError("المسار غير موجود.", 404);

@@ -26,14 +26,42 @@ No service-role key or second authentication system is needed in the browser.
    migration adds it automatically when `supabase_realtime` already exists. If
    that publication was absent when the migration ran, enable the table in the
    Supabase dashboard after enabling Realtime.
-4. Deploy/rebuild on Vercel after setting public environment variables; Next.js
-   embeds those values in the browser bundle at build time.
+4. Deploy on Vercel after setting the environment variables. The realtime client
+   now obtains only the public URL/key from `/api/intake/public/realtime` at
+   runtime, so an older compiled browser environment cannot silently disable the
+   subscription. A missing configuration returns HTTP 503 and an Arabic message;
+   a service-role/secret key is rejected and is never returned to the browser.
+   Vercel environment changes still need a new deployment to take effect.
 5. Open `/admin/intake`. Review Arabic area names and structural activation.
    Known existing English area names are translated by the migration. Unknown
    names require an Arabic name before they can accept orders. All intake starts
    closed. Add any missing routes here using the correct existing business price.
 6. Open appropriate routes and share `/order`. Captain screens are
    `/captain/orders` and `/captain/intake`; admin/staff orders are `/admin/orders`.
+7. In `/admin/intake`, enable **صلاحية الكابتن في استقبال الطلبات** if the
+   Captain should control intake. This defaults off. The setting grants opening/
+   closing existing routes and activating/deactivating existing areas only.
+   Creation, deletion, renaming, pricing, and role management stay restricted.
+   Revocation is checked inside captain mutation transactions and updates live.
+
+The PWA's `/` start URL and `/captain` now lead Captains to active orders. Existing
+trip accounting is retained at `/captain/trips` under **المشاوير**.
+
+## Customer tracking
+
+New submissions return a unique, unpredictable tracking reference (128 bits),
+including retries of the same submission. The customer receives a copy button
+and `/order/track#ref=...` link, and can also type the reference into the tracking
+page. Existing orders receive references through the second additive migration.
+The tracking API returns only status, timestamps, and a customer-facing
+cancellation reason; it never returns contact details, addresses, or internal
+notes. Anyone holding the reference can see that limited status, so customers
+should retain it and share it only as needed.
+
+The displayed statuses are **تم استقبال طلبك**, **تم التوصيل**, and
+**تم إلغاء الطلب**. New cancellations require an explicit customer-facing reason.
+Older cancellations without a reason show a contact-administration message.
+The tracking page subscribes to order change markers and refreshes after reconnect.
 
 The application must use Supabase's database owner/server connection for Prisma,
 not the `anon`/`authenticated` database role. Do not grant those roles access to
@@ -45,7 +73,8 @@ customer records to resolve a server connection configuration problem.
   database row locks coordinate intake checks with route and area changes.
 - Manual orders may use closed, structurally active routes. Captains cannot
   create or edit orders; Moderators can create/edit active orders and change
-  availability, but cannot complete/cancel or structurally manage routes.
+  route availability, but cannot complete/cancel or structurally manage routes.
+  Captain intake controls require the admin's persistent setting to be enabled.
 - Completing a customer order does not create an accounting `TripRecord`.
   Existing captain earnings/trip entry behavior continues independently.
 - Orders retain route-name snapshots and remain stored after completion or
@@ -78,6 +107,9 @@ Use `npx prisma migrate deploy` to apply pending migrations before serving the
 new build. Rebuilding Prisma or clearing PWA caches does not add database columns.
 
 Run `npm run test:intake`, `npx tsc --noEmit`, and `npm run build`.
+Run `node scripts/check-deployed-realtime.mjs` to check whether the public
+deployment has runtime realtime configuration (or, for older deployments, whether
+the public environment variables were actually embedded). It never prints keys.
 The tests use isolated PGlite PostgreSQL, not production Supabase. They cover the
 permission matrix, Arabic validation, additive migration, route uniqueness,
 retention, activation triggers, stale terminal transitions, transactional change

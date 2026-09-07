@@ -2,7 +2,7 @@ import { prisma } from "@/lib/prisma";
 import { hasPermission } from "@/lib/permissions";
 import { requirePermission } from "./server";
 import { lockRoute } from "./routes";
-import { IntakeError, objectInput, orderInput, textInput, versionInput } from "./validation";
+import { IntakeError, objectInput, orderInput, textInput, versionInput, trackingInput } from "./validation";
 
 export async function createOrder(input: unknown, publicOnly: boolean) {
   const user = publicOnly ? null : await requirePermission("Orders.Create");
@@ -14,16 +14,19 @@ export async function createOrder(input: unknown, publicOnly: boolean) {
   const requestKey = `${user?.id || "public"}:${key}`;
   try {
     return await prisma.$transaction(async tx => {
-      const existing = await tx.order.findUnique({ where: { requestKey }, select: { id: true } });
-      if (existing) return { success: true };
+      const existing = await tx.order.findUnique({ where: { requestKey }, select: { trackingNumber: true } });
+      if (existing) return { success: true, trackingNumber: existing.trackingNumber };
       const route = await lockRoute(tx, data.routeId, publicOnly);
-      await tx.order.create({ data: { ...data, requestKey,
+      const order = await tx.order.create({ data: { ...data, requestKey,
         fromAreaName: route.fromArea.nameAr!, toAreaName: route.toArea.nameAr!,
         source: publicOnly ? "PUBLIC" : "INTERNAL", createdBy: user?.id, updatedBy: user?.id } });
-      return { success: true };
+      return { success: true, trackingNumber: order.trackingNumber };
     });
   } catch (error) {
-    if ((error as { code?: string }).code === "P2002" && await prisma.order.findUnique({ where: { requestKey }, select: { id: true } })) return { success: true };
+    if ((error as { code?: string }).code === "P2002") {
+      const existing = await prisma.order.findUnique({ where: { requestKey }, select: { trackingNumber: true } });
+      if (existing) return { success: true, trackingNumber: existing.trackingNumber };
+    }
     throw error;
   }
 }
@@ -37,7 +40,8 @@ export async function listOrders(history: boolean, cursor?: string) {
     // Do not serialize retry keys or internal audit actor identifiers.
     select: { id: true, routeId: true, fromAreaName: true, toAreaName: true,
       pickupBuilding: true, senderPhone: true, deliveryBuilding: true, receiverPhone: true,
-      notes: true, status: true, version: true, createdAt: true, completedAt: true, cancelledAt: true, source: true },
+      notes: true, status: true, version: true, createdAt: true, completedAt: true, cancelledAt: true, source: true,
+      trackingNumber: true, cancellationNote: true },
   });
   return { orders, role: user.role, nextCursor: history && orders.length === 50 ? orders[49].id : null };
 }
@@ -63,11 +67,22 @@ export async function updateOrder(id: string, input: unknown) {
       changes = fields;
     } else {
       changes = action === "complete" ? { status: "COMPLETED" as const, completedAt: new Date(), completedBy: user.id }
-        : { status: "CANCELLED" as const, cancelledAt: new Date(), cancelledBy: user.id };
+        : { status: "CANCELLED" as const, cancelledAt: new Date(), cancelledBy: user.id,
+          cancellationNote: textInput(data.cancellationNote, "سبب الإلغاء الذي سيظهر للعميل", 500) };
     }
     const result = await tx.order.updateMany({ where: { id, version, status: existing.status },
       data: { ...changes, updatedBy: user.id, version: { increment: 1 } } });
     if (!result.count) throw new IntakeError("تم تعديل الطلب من مستخدم آخر. يرجى مراجعة حالته الحالية.", 409);
     return { success: true };
   });
+}
+
+export async function trackOrder(reference: unknown) {
+  const trackingNumber = trackingInput(reference);
+  const order = await prisma.order.findUnique({ where: { trackingNumber }, select: {
+    trackingNumber: true, status: true, createdAt: true, completedAt: true,
+    cancelledAt: true, cancellationNote: true,
+  } });
+  if (!order) throw new IntakeError("لم يتم العثور على الطلب. تأكد من رقم المتابعة وحاول مجددًا.", 404);
+  return order;
 }
