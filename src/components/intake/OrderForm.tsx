@@ -16,7 +16,7 @@ export function OrderForm({ routes, initial, publicOnly = false, onSave, onCance
   const [requestKey] = useState(() => crypto.randomUUID());
   const selected = routes.find(r => r.id === routeId);
   const closed = publicOnly && routeId !== "" && !selected;
-  return <form noValidate className="space-y-4 rounded-2xl border border-light-border bg-white p-4 dark:border-dark-border dark:bg-dark-card" onSubmit={async event => {
+  return <form noValidate className="space-y-4 rounded-2xl border border-light-border bg-white p-5 text-light-text-main shadow-sm dark:border-dark-border dark:bg-dark-card dark:text-dark-text-main" onSubmit={async event => {
     event.preventDefault();
     if (busy) return;
     setError("");
@@ -29,12 +29,12 @@ export function OrderForm({ routes, initial, publicOnly = false, onSave, onCance
     } catch (err) { setError((err as Error).message); }
     finally { setBusy(false); }
   }}>
-    {initial ? <p className="font-bold">من {initial.fromAreaName} إلى {initial.toAreaName}</p> :
-      <label className="block space-y-2"><span className="font-semibold">مسار التوصيل</span>
+    {initial ? <p className="font-bold text-lg">من {initial.fromAreaName} إلى {initial.toAreaName}</p> :
+      <label className="block space-y-2"><span className="font-semibold text-light-text-main dark:text-dark-text-main">مسار التوصيل</span>
         <select className={fieldClass} value={routeId} onChange={e => setRouteId(e.target.value)} disabled={busy}>
-          <option value="">اختر مسارًا</option>
-          {closed && <option value={routeId}>المسار المحدد مغلق حاليًا</option>}
-          {routes.map(route => <option key={route.id} value={route.id}>{routeLabel(route)}{!publicOnly && !route.isOpen ? " (مغلق للطلبات العامة)" : ""}</option>)}
+          <option value="" className="bg-white text-gray-900 dark:bg-gray-900 dark:text-white">اختر مسارًا</option>
+          {closed && <option value={routeId} className="bg-red-50 text-red-900 dark:bg-red-950 dark:text-red-200">المسار المحدد مغلق حاليًا</option>}
+          {routes.map(route => <option key={route.id} value={route.id} className="bg-white text-gray-900 dark:bg-gray-900 dark:text-white">{routeLabel(route)}{!publicOnly && !route.isOpen ? " (مغلق للطلبات العامة)" : ""}</option>)}
         </select>
       </label>}
     {closed && <Notice error message="تم إغلاق استقبال الطلبات لهذا المسار منذ قليل. يمكنك الاحتفاظ بالبيانات واختيار مسار آخر متاح." />}
@@ -46,12 +46,12 @@ export function OrderForm({ routes, initial, publicOnly = false, onSave, onCance
           ["deliveryBuilding", "رقم عمارة التسليم", "text", 80],
           ["receiverPhone", "رقم هاتف المستلم", "tel", 30],
         ] as const).map(([name, label, type, maxLength]) => <label key={name} className="block space-y-2">
-          <span className="font-semibold">{label}</span>
+          <span className="font-semibold text-light-text-main dark:text-dark-text-main">{label}</span>
           <input name={name} type={type} dir={type === "tel" ? "ltr" : undefined} required maxLength={maxLength}
             defaultValue={initial?.[name] || ""} disabled={busy} className={fieldClass} />
         </label>)}
       </div>
-      <label className="block space-y-2"><span className="font-semibold">ملاحظات (اختياري)</span>
+      <label className="block space-y-2"><span className="font-semibold text-light-text-main dark:text-dark-text-main">ملاحظات (اختياري)</span>
         <textarea name="notes" rows={3} maxLength={1000} defaultValue={initial?.notes || ""} disabled={busy} className={fieldClass} />
       </label>
     </>}

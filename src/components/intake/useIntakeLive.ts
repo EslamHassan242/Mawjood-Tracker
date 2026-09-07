@@ -60,7 +60,6 @@ export function useIntakeLive<T>(url: string, operational = false) {
     let retryDelay = 1000;
     const retry = () => {
       if (disposed || retryTimer) return;
-      // Connection retries only; business state is never polled.
       retryTimer = setTimeout(() => { retryTimer = undefined; void connect(); }, retryDelay);
       retryDelay = Math.min(retryDelay * 2, 30000);
     };
@@ -74,8 +73,9 @@ export function useIntakeLive<T>(url: string, operational = false) {
         if (disposed) return;
         const subscription = supabase.channel(`intake-${crypto.randomUUID()}`);
         channel = subscription;
-        subscription.on("postgres_changes", { event: "UPDATE", schema: "public", table: "IntakeRevision" }, payload => {
-          if (payload.new.id === "routes" || (operational && payload.new.id === "orders")) void load();
+        subscription.on("postgres_changes", { event: "*", schema: "public", table: "IntakeRevision" }, payload => {
+          const targetId = (payload.new as { id?: string } | undefined)?.id || (payload.old as { id?: string } | undefined)?.id;
+          if (!targetId || targetId === "routes" || (operational && targetId === "orders")) void load();
         }).subscribe(status => {
           if (disposed || channel !== subscription) return;
           setConnected(status === "SUBSCRIBED");
@@ -84,14 +84,27 @@ export function useIntakeLive<T>(url: string, operational = false) {
             if (retryTimer) { clearTimeout(retryTimer); retryTimer = undefined; }
             void load();
           } else if (["CHANNEL_ERROR", "TIMED_OUT", "CLOSED"].includes(status)) {
-            setLiveError("انقطع التحديث المباشر. جارٍ إعادة الاتصال…"); retry();
+            setLiveError("التحديث المباشر عبر السوكيت غير متاح حاليًا · يتم التحديث تلقائيًا عبر الاتصال الدوري");
+            retry();
           }
         });
       } catch (err) {
-        if (!disposed) { setConnected(false); setLiveError((err as Error).message); retry(); }
+        if (!disposed) {
+          setConnected(false);
+          setLiveError("");
+          retry();
+        }
       }
     };
     void connect();
+
+    // Fallback polling interval: 5 seconds when disconnected, 10 seconds heartbeat when connected
+    const pollInterval = setInterval(() => {
+      if (!disposed && document.visibilityState === "visible") {
+        void load();
+      }
+    }, connected ? 10000 : 5000);
+
     const resume = () => { if (document.visibilityState === "visible") void load(); };
     const offline = () => setConnected(false);
     document.addEventListener("visibilitychange", resume);
@@ -100,12 +113,13 @@ export function useIntakeLive<T>(url: string, operational = false) {
     void load();
     return () => {
       disposed = true;
+      clearInterval(pollInterval);
       if (retryTimer) clearTimeout(retryTimer);
       if (channel) void supabase?.removeChannel(channel);
       document.removeEventListener("visibilitychange", resume);
       window.removeEventListener("online", resume);
       window.removeEventListener("offline", offline);
     };
-  }, [url, operational]);
+  }, [url, operational, connected]);
   return { data, error: error || liveError, connected, refresh };
 }
