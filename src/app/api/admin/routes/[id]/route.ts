@@ -89,8 +89,12 @@ export async function DELETE(
     const url = new URL(request.url);
     const force = url.searchParams.get("force") === "true";
 
-    // Check if any trips reference this route
-    const referencingTripsCount = await prisma.tripRecord.count({
+    return await prisma.$transaction(async (tx) => {
+      await tx.$queryRaw`SELECT "id" FROM "Route" WHERE "id" = ${routeId} FOR UPDATE`;
+      const ordersCount = await tx.order.count({ where: { routeId } });
+      if (ordersCount) return NextResponse.json({ error: "لا يمكن حذف مسار مرتبط بطلبات. يمكنك تعطيله بدلًا من حذفه." }, { status: 409 });
+      // Check if any trips reference this route
+    const referencingTripsCount = await tx.tripRecord.count({
       where: { routeId },
     });
 
@@ -107,25 +111,25 @@ export async function DELETE(
 
     // Force delete: cascade-delete all trip records and referencing logs for this route first
     if (referencingTripsCount > 0 && force) {
-      const tripIds = await prisma.tripRecord.findMany({
+      const tripIds = await tx.tripRecord.findMany({
         where: { routeId },
         select: { id: true },
       });
       const ids = tripIds.map((t) => t.id);
 
       // Delete any deletedTripRecord entries referencing these trips
-      await prisma.deletedTripRecord.deleteMany({
+      await tx.deletedTripRecord.deleteMany({
         where: { originalTripId: { in: ids } },
       });
 
       // Delete the trip records themselves
-      await prisma.tripRecord.deleteMany({
+      await tx.tripRecord.deleteMany({
         where: { routeId },
       });
     }
 
     // Now delete the route
-    await prisma.route.delete({
+    await tx.route.delete({
       where: { id: routeId },
     });
 
@@ -134,6 +138,8 @@ export async function DELETE(
       message: force
         ? `Route and ${referencingTripsCount} associated trip(s) permanently deleted.`
         : "Route deleted successfully",
+    });
+
     });
   } catch (error) {
     console.error("Error in DELETE /api/admin/routes/[id]:", error);

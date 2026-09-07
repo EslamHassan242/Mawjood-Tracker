@@ -1,0 +1,64 @@
+"use client";
+import { useState } from "react";
+import { Button } from "@/components/ui/Button";
+import type { IntakeRoute, OrderInput, OrderView } from "@/lib/intake/types";
+import { routeLabel } from "@/lib/intake/types";
+import { orderInput } from "@/lib/intake/validation";
+import { fieldClass, Notice } from "./IntakeShell";
+
+export function OrderForm({ routes, initial, publicOnly = false, onSave, onCancel }: {
+  routes: IntakeRoute[]; initial?: OrderView; publicOnly?: boolean;
+  onSave: (input: OrderInput & { requestKey: string }) => Promise<void>; onCancel?: () => void;
+}) {
+  const [routeId, setRouteId] = useState(initial?.routeId || "");
+  const [error, setError] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [requestKey] = useState(() => crypto.randomUUID());
+  const selected = routes.find(r => r.id === routeId);
+  const closed = publicOnly && routeId !== "" && !selected;
+  return <form noValidate className="space-y-4 rounded-2xl border border-light-border bg-white p-4 dark:border-dark-border dark:bg-dark-card" onSubmit={async event => {
+    event.preventDefault();
+    if (busy) return;
+    setError("");
+    const form = new FormData(event.currentTarget);
+    try {
+      const input = orderInput({ routeId, ...Object.fromEntries(form.entries()) });
+      if (closed) throw new Error("تم إغلاق هذا المسار. يرجى اختيار مسار متاح.");
+      setBusy(true);
+      await onSave({ ...input, requestKey });
+    } catch (err) { setError((err as Error).message); }
+    finally { setBusy(false); }
+  }}>
+    {initial ? <p className="font-bold">من {initial.fromAreaName} إلى {initial.toAreaName}</p> :
+      <label className="block space-y-2"><span className="font-semibold">مسار التوصيل</span>
+        <select className={fieldClass} value={routeId} onChange={e => setRouteId(e.target.value)} disabled={busy}>
+          <option value="">اختر مسارًا</option>
+          {closed && <option value={routeId}>المسار المحدد مغلق حاليًا</option>}
+          {routes.map(route => <option key={route.id} value={route.id}>{routeLabel(route)}{!publicOnly && !route.isOpen ? " (مغلق للطلبات العامة)" : ""}</option>)}
+        </select>
+      </label>}
+    {closed && <Notice error message="تم إغلاق استقبال الطلبات لهذا المسار منذ قليل. يمكنك الاحتفاظ بالبيانات واختيار مسار آخر متاح." />}
+    {(routeId || initial) && <>
+      <div className="grid gap-4 sm:grid-cols-2">
+        {([
+          ["pickupBuilding", "رقم عمارة الاستلام", "text", 80],
+          ["senderPhone", "رقم هاتف الراسل", "tel", 30],
+          ["deliveryBuilding", "رقم عمارة التسليم", "text", 80],
+          ["receiverPhone", "رقم هاتف المستلم", "tel", 30],
+        ] as const).map(([name, label, type, maxLength]) => <label key={name} className="block space-y-2">
+          <span className="font-semibold">{label}</span>
+          <input name={name} type={type} dir={type === "tel" ? "ltr" : undefined} required maxLength={maxLength}
+            defaultValue={initial?.[name] || ""} disabled={busy} className={fieldClass} />
+        </label>)}
+      </div>
+      <label className="block space-y-2"><span className="font-semibold">ملاحظات (اختياري)</span>
+        <textarea name="notes" rows={3} maxLength={1000} defaultValue={initial?.notes || ""} disabled={busy} className={fieldClass} />
+      </label>
+    </>}
+    <Notice error message={error} />
+    <div className="flex flex-wrap gap-3">
+      <Button type="submit" isLoading={busy} disabled={!routeId || closed}>{initial ? "حفظ التعديلات" : "إرسال الطلب"}</Button>
+      {onCancel && <Button type="button" variant="outline" disabled={busy} onClick={onCancel}>إلغاء</Button>}
+    </div>
+  </form>;
+}

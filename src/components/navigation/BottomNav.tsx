@@ -10,6 +10,7 @@ export const BottomNav: React.FC = () => {
   const pathname = usePathname();
 
   const navItems = [
+    { label: "الطلبات", href: "/captain/orders", icon: <LayoutGrid size={22} /> },
     {
       label: "Routes",
       href: "/captain",

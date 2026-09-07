@@ -35,6 +35,8 @@ export const Sidebar: React.FC<SidebarProps> = ({
   const { role, isSuperAdmin } = useRole();
 
   const navItems = [
+    { label: "طلبات التوصيل", href: "/admin/orders", icon: <ClipboardList size={20} /> },
+    { label: "استقبال الطلبات", href: "/admin/intake", icon: <Map size={20} /> },
     {
       label: "Dashboard",
       href: "/admin",

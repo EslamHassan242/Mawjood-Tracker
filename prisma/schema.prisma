@@ -24,6 +24,8 @@ model User {
 model Area {
   id        String   @id @default(cuid())
   name      String   @unique
+  nameAr    String?
+  isActive  Boolean  @default(true)
   createdAt DateTime @default(now())
 
   routesFrom Route[] @relation("FromArea")
@@ -36,14 +38,59 @@ model Route {
   toAreaId   String
   price      Float
   isActive   Boolean  @default(true)
+  isOpen     Boolean  @default(false)
+  availabilityVersion Int @default(0)
+  availabilityChangedAt DateTime?
+  availabilityChangedBy String?
   sortOrder  Int      @default(0)
   createdAt  DateTime @default(now())
 
   fromArea Area         @relation("FromArea", fields: [fromAreaId], references: [id])
   toArea   Area         @relation("ToArea", fields: [toAreaId], references: [id])
   trips    TripRecord[]
+  orders   Order[]
 
   @@unique([fromAreaId, toAreaId])
+}
+
+enum OrderStatus {
+  ACTIVE
+  COMPLETED
+  CANCELLED
+}
+
+model Order {
+  id               String @id @default(cuid())
+  routeId          String
+  route            Route @relation(fields: [routeId], references: [id], onDelete: Restrict)
+  fromAreaName      String
+  toAreaName        String
+  pickupBuilding   String
+  senderPhone      String
+  deliveryBuilding String
+  receiverPhone    String
+  notes            String @default("")
+  status           OrderStatus @default(ACTIVE)
+  source           String
+  requestKey       String @unique
+  version          Int @default(0)
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+  createdBy        String?
+  updatedBy        String?
+  completedAt      DateTime?
+  completedBy      String?
+  cancelledAt      DateTime?
+  cancelledBy      String?
+
+  @@index([status, createdAt, id])
+  @@index([routeId])
+}
+
+// Content-free invalidation only. Customer records are never published to Realtime.
+model IntakeRevision {
+  id      String @id
+  version BigInt @default(0)
 }
 
 model TripRecord {
