@@ -34,7 +34,7 @@ export default function PublicOrderPage() {
         <p className="text-sm text-gray-700 dark:text-gray-300">احتفظ برقم المتابعة للاستعلام عن حالة طلبك في أي وقت:</p>
         <p className="select-all break-all rounded-xl bg-gray-100 p-4 text-center font-mono text-xl font-bold tracking-wider text-emerald-800 dark:bg-gray-900 dark:text-emerald-400" dir="ltr">{trackingLabel(receipt.trackingNumber)}</p>
         <div className="flex flex-wrap gap-3">
-          <Link className="rounded-xl bg-emerald-700 px-5 py-2.5 font-bold text-white shadow-sm transition-opacity hover:opacity-90 dark:bg-emerald-600" href={`/order/track#ref=${receipt.trackingNumber}`}>متابعة حالة الطلب</Link>
+          <Link className="rounded-xl bg-emerald-700 px-5 py-2.5 font-bold text-white shadow-sm transition-opacity hover:opacity-90 dark:bg-emerald-600" href={`/order/track?ref=${encodeURIComponent(receipt.trackingNumber)}`}>متابعة حالة الطلب</Link>
           <Button variant="outline" onClick={async () => {
             try { await navigator.clipboard.writeText(trackingLabel(receipt.trackingNumber)); setSuccess("تم نسخ رقم المتابعة."); }
             catch { setSuccess("يمكنك تحديد رقم المتابعة ونسخه يدويًا."); }

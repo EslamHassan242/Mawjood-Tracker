@@ -132,7 +132,7 @@ export default function OrdersPage({ captain = false }: { captain?: boolean }) {
         <div className="flex flex-wrap justify-between gap-2"><h2 className="font-extrabold">من {order.fromAreaName} إلى {order.toAreaName}</h2><span className="rounded-lg bg-emerald-50 px-2 py-1 text-sm text-emerald-900">{statusLabels[order.status]}</span></div>
         <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleString("ar-EG")} · {order.source === "PUBLIC" ? "طلب عميل" : "طلب يدوي"}</p>
         <p className="break-all text-xs">رقم المتابعة: <bdi>{trackingLabel(order.trackingNumber)}</bdi></p>
-        <Link className="text-sm underline" target="_blank" href={`/order/track#ref=${order.trackingNumber}`}>رابط متابعة العميل</Link>
+        <Link className="text-sm underline" target="_blank" href={`/order/track?ref=${encodeURIComponent(order.trackingNumber)}`}>رابط متابعة العميل</Link>
         <div className="grid grid-cols-2 gap-4">
           <div className="space-y-2">
             <h3 className="font-bold text-light-text-main dark:text-dark-text-main">من</h3>

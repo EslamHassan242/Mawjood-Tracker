@@ -31,16 +31,31 @@ export default function TrackingPage() {
   const [input, setInput] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
-    const readHash = () => {
-      const code = new URLSearchParams(window.location.hash.slice(1)).get("ref");
+    const readCode = () => {
+      const searchParams = new URLSearchParams(window.location.search);
+      const hashStr = window.location.hash.startsWith("#") ? window.location.hash.slice(1) : window.location.hash;
+      const hashParams = new URLSearchParams(hashStr);
+
+      const code = searchParams.get("ref") || hashParams.get("ref") || (hashStr && !hashStr.includes("=") ? hashStr : null);
       if (code) {
-        try { const normalized = trackingInput(code); setReference(normalized); setInput(trackingLabel(normalized)); }
-        catch { setError("رابط المتابعة غير صحيح. أدخل الرقم يدويًا."); }
+        try {
+          const decoded = decodeURIComponent(code);
+          const normalized = trackingInput(decoded);
+          setReference(normalized);
+          setInput(trackingLabel(normalized));
+          setError("");
+        } catch {
+          setError("رابط المتابعة غير صحيح. أدخل الرقم يدويًا.");
+        }
       }
     };
-    readHash();
-    window.addEventListener("hashchange", readHash);
-    return () => window.removeEventListener("hashchange", readHash);
+    readCode();
+    window.addEventListener("hashchange", readCode);
+    window.addEventListener("popstate", readCode);
+    return () => {
+      window.removeEventListener("hashchange", readCode);
+      window.removeEventListener("popstate", readCode);
+    };
   }, []);
   return <main dir="rtl" lang="ar" className="min-h-screen bg-light-bg px-4 py-8 text-light-text-main transition-colors dark:bg-dark-bg dark:text-dark-text-main">
     <div className="mx-auto max-w-2xl space-y-6">
