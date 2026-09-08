@@ -12,6 +12,7 @@ import { EmptyState } from "@/components/ui/EmptyState";
 import { formatPrice } from "@/lib/utils";
 import { toast } from "sonner";
 import { useRole } from "@/components/navigation/RoleContext";
+import { CaptainAccountActions } from "@/components/captain/CaptainAccountActions";
 
 interface Captain {
   id: string;
@@ -195,6 +196,9 @@ export default function AdminCaptainsPage() {
               </div>
 
               {/* Details link */}
+              {canWrite && <CaptainAccountActions captain={captain} onUpdated={updated => {
+                setCaptains(current => current.map(item => item.id === updated.id ? { ...item, ...updated } : item));
+              }} />}
               <div className="mt-4 flex justify-end">
                 <Link
                   href={`/admin/captains/${captain.id}`}

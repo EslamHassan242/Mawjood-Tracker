@@ -1,7 +1,8 @@
 import { NextResponse } from "next/server";
 import { auth } from "@/lib/auth";
 import { prisma } from "@/lib/prisma";
-import * as bcrypt from "bcryptjs";
+import { updateCaptainAccount } from "@/lib/captain-accounts";
+import { CaptainAccountError } from "@/lib/captain-account-input";
 import { events } from "@/lib/events";
 import {
   startOfDay,
@@ -9,7 +10,7 @@ import {
   subDays,
   startOfMonth,
 } from "date-fns";
-import { canView, canWrite, canDelete } from "@/lib/permissions";
+import { canView, canDelete } from "@/lib/permissions";
 
 // GET /api/admin/captains/[id] - Get captain details and stats
 export async function GET(
@@ -144,66 +145,12 @@ export async function PATCH(
   { params }: { params: Promise<{ id: string }> }
 ) {
   try {
-    const session = await auth();
-    if (!session || !session.user) {
-      return NextResponse.json({ error: "Unauthorized" }, { status: 401 });
-    }
-
-    const role = (session.user as any).role as string;
-    if (!canWrite(role)) {
-      return NextResponse.json({ error: "Forbidden: Insufficient permissions" }, { status: 403 });
-    }
-
     const { id: captainId } = await params;
-    const body = await request.json();
-    const { name, email, password, isActive } = body;
-
-    const dataToUpdate: any = {};
-    if (name) dataToUpdate.name = name;
-    if (typeof isActive === "boolean") dataToUpdate.isActive = isActive;
-    
-    if (email) {
-      // Check if email is already taken by another user
-      const existingUser = await prisma.user.findFirst({
-        where: {
-          email,
-          id: { not: captainId },
-        },
-      });
-
-      if (existingUser) {
-        return NextResponse.json({ error: "Email is already in use by another account" }, { status: 400 });
-      }
-      dataToUpdate.email = email;
-    }
-
-    if (password) {
-      dataToUpdate.passwordHash = await bcrypt.hash(password, 10);
-    }
-
-    const updatedCaptain = await prisma.user.update({
-      where: { id: captainId },
-      data: dataToUpdate,
-      select: {
-        id: true,
-        name: true,
-        email: true,
-        isActive: true,
-        role: true,
-      },
-    });
-
-    // Emit real-time operational change event to update stats
-    events.emit("trip-change");
-
-    return NextResponse.json({
-      success: true,
-      message: "Captain account updated successfully",
-      captain: updatedCaptain,
-    });
+    const body = await request.json().catch(() => { throw new CaptainAccountError("بيانات الحساب غير صحيحة."); });
+    return NextResponse.json(await updateCaptainAccount(captainId, body), { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    console.error("Error in PATCH /api/admin/captains/[id]:", error);
-    return NextResponse.json({ error: "Internal Server Error" }, { status: 500 });
+    return NextResponse.json({ error: error instanceof CaptainAccountError ? error.message : "تعذر حفظ الحساب. حاول مجددًا." },
+      { status: error instanceof CaptainAccountError ? error.status : 500, headers: { "Cache-Control": "no-store" } });
   }
 }
 
