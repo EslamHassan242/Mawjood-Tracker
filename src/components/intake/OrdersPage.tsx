@@ -130,7 +130,7 @@ export default function OrdersPage({ captain = false }: { captain?: boolean }) {
     <div className="grid gap-4 lg:grid-cols-2">
       {data?.orders.map(order => <article key={order.id} className="space-y-4 rounded-2xl border border-light-border bg-white p-4 dark:border-dark-border dark:bg-dark-card">
         <div className="flex flex-wrap justify-between gap-2"><h2 className="font-extrabold">من {order.fromAreaName} إلى {order.toAreaName}</h2><span className="rounded-lg bg-emerald-50 px-2 py-1 text-sm text-emerald-900">{statusLabels[order.status]}</span></div>
-        <p className="text-xs text-gray-500">{new Date(order.createdAt).toLocaleString("ar-EG")} · {order.source === "PUBLIC" ? "طلب عميل" : "طلب يدوي"}</p>
+        <p className="text-xs text-light-text-muted dark:text-dark-text-muted">{new Date(order.createdAt).toLocaleString("ar-EG")} · {order.source === "PUBLIC" ? "طلب عميل" : "طلب يدوي"}</p>
         <p className="break-all text-xs">رقم المتابعة: <bdi>{trackingLabel(order.trackingNumber)}</bdi></p>
         <Link className="text-sm underline" target="_blank" href={`/order/track?ref=${encodeURIComponent(order.trackingNumber)}`}>رابط متابعة العميل</Link>
         <div className="grid grid-cols-2 gap-4">

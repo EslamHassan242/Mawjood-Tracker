@@ -1,7 +1,7 @@
 @import "tailwindcss";
 
-/* Enable manual class-based dark mode alongside system preferences */
-@variant dark (&:where(.dark, .dark *));
+/* The root layout resolves the saved preference/system default to this class. */
+@custom-variant dark (&:where(.dark, .dark *));
 
 @theme {
   /* Brand color palette */
@@ -86,7 +86,11 @@
 /* Custom global styles */
 :root {
   --font-sans: var(--font-cairo), system-ui, sans-serif;
-  color-scheme: light dark;
+  color-scheme: light;
+}
+
+:root.dark {
+  color-scheme: dark;
 }
 
 body {
@@ -97,11 +101,9 @@ body {
   -webkit-tap-highlight-color: transparent;
 }
 
-@media (prefers-color-scheme: dark) {
-  body {
-    background-color: var(--color-dark-bg);
-    color: var(--color-dark-text-main);
-  }
+.dark body {
+  background-color: var(--color-dark-bg);
+  color: var(--color-dark-text-main);
 }
 
 /* Safe Area Insets for Mobile PWAs */

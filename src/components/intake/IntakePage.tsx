@@ -17,7 +17,7 @@ export default function IntakePage({ captain = false }: { captain?: boolean }) {
     <nav className="flex flex-wrap gap-4"><Link className="underline" href={captain ? "/captain/orders" : "/admin/orders"}>طلبات التوصيل</Link><Link className="underline" href="/order" target="_blank">رابط طلبات العملاء</Link></nav>
     <p className="text-sm leading-7">افتح المسارات المناسبة لاستقبال طلبات العملاء. إغلاق المسار لا يؤثر على الطلبات المسجلة.</p>
     <Notice error message={error || actionError} /><Notice message={message} />
-    {data && hasPermission(data.role, "Routes.ConfigureCaptain") && <section className="space-y-3 rounded-2xl border bg-white p-4 dark:bg-dark-card">
+    {data && hasPermission(data.role, "Routes.ConfigureCaptain") && <section className="space-y-3 rounded-2xl border border-light-border bg-white p-4 dark:border-dark-border dark:bg-dark-card">
       <h2 className="font-bold">صلاحية الكابتن في استقبال الطلبات</h2>
       <p className="text-sm leading-7">عند السماح، يستطيع الكابتن فتح وإغلاق المسارات وتفعيل وتعطيل مناطق التوصيل الموجودة. لا تشمل الصلاحية إضافة المناطق أو حذفها.</p>
       <Button role="switch" aria-checked={data.captainCanChangeAvailability} disabled={!!busy} variant={data.captainCanChangeAvailability ? "outline" : "primary"} onClick={async () => {
@@ -38,7 +38,7 @@ export default function IntakePage({ captain = false }: { captain?: boolean }) {
         const open = route.isOpen && available;
         return <article key={route.id} className="space-y-3 rounded-2xl border border-light-border bg-white p-4 dark:border-dark-border dark:bg-dark-card">
           <h2 className="font-bold">{routeLabel(route)}</h2>
-          <p className={`text-sm ${open ? "text-emerald-700 dark:text-emerald-400" : "text-gray-500"}`}>{open ? "مفتوح لاستقبال الطلبات" : "مغلق"}</p>
+          <p className={`text-sm ${open ? "text-emerald-700 dark:text-emerald-400" : "text-light-text-muted dark:text-dark-text-muted"}`}>{open ? "مفتوح لاستقبال الطلبات" : "مغلق"}</p>
           {!available && <p className="text-sm text-amber-700 dark:text-amber-400">المسار أو إحدى مناطقه غير مفعلة، أو ينقصها الاسم العربي.</p>}
           <Button role="switch" aria-checked={!!open} aria-label={`${open ? "إغلاق" : "فتح"} ${routeLabel(route)}`} variant={open ? "outline" : "primary"}
             disabled={!data.canChangeAvailability || !!busy || (!available && !route.isOpen)} isLoading={busy === route.id} onClick={async () => {
@@ -55,7 +55,7 @@ export default function IntakePage({ captain = false }: { captain?: boolean }) {
     {data && (data.canChangeAreaAvailability || captain) && <section className="space-y-3">
       <h2 className="text-lg font-bold">مناطق التوصيل</h2>
       <p className="text-sm leading-7">تعطيل منطقة يغلق استقبال الطلبات على مساراتها. إعادة تفعيلها لا تفتح المسارات تلقائيًا ولا تغير الطلبات المسجلة.</p>
-      {data.areas.map(area => <article key={area.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border bg-white p-4 dark:bg-dark-card">
+      {data.areas.map(area => <article key={area.id} className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-light-border bg-white p-4 dark:border-dark-border dark:bg-dark-card">
         <span>{areaLabel(area)} · {area.isActive ? "مفعلة" : "معطلة"}</span>
         <Button variant="outline" disabled={!!busy || !data.canChangeAreaAvailability} onClick={async () => {
           if (!window.confirm(area.isActive ? "هل تريد تعطيل هذه المنطقة وإغلاق استقبال الطلبات على مساراتها؟" : "هل تريد تفعيل هذه المنطقة؟")) return;
@@ -68,6 +68,6 @@ export default function IntakePage({ captain = false }: { captain?: boolean }) {
         }}>{area.isActive ? "تعطيل المنطقة" : "تفعيل المنطقة"}</Button>
       </article>)}
     </section>}
-    {data && hasPermission(data.role, "Routes.Manage") && <details className="rounded-2xl border p-4"><summary className="cursor-pointer font-bold">إدارة المناطق والمسارات</summary><RouteManagement /></details>}
+    {data && hasPermission(data.role, "Routes.Manage") && <details className="rounded-2xl border border-light-border p-4 dark:border-dark-border"><summary className="cursor-pointer font-bold">إدارة المناطق والمسارات</summary><RouteManagement /></details>}
   </IntakeShell>;
 }

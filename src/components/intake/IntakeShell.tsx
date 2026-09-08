@@ -1,7 +1,7 @@
 import type { ReactNode } from "react";
 
 export function IntakeShell({ title, connected, children }: { title: string; connected: boolean; children: ReactNode }) {
-  return <section dir="rtl" lang="ar" className="mx-auto w-full max-w-4xl space-y-5 text-start">
+  return <section dir="rtl" lang="ar" className="mx-auto w-full max-w-4xl space-y-5 text-start text-light-text-main dark:text-dark-text-main">
     <header className="space-y-2">
       <h1 className="text-2xl font-extrabold text-light-text-main dark:text-dark-text-main">{title}</h1>
       <p role="status" className={`text-sm font-medium ${connected ? "text-emerald-700 dark:text-emerald-400" : "text-amber-700 dark:text-amber-400"}`}>

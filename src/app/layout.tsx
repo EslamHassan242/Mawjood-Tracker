@@ -15,7 +15,7 @@ export const metadata: Metadata = {
     default: "Mawjood Tracker",
     template: "%s | Mawjood Tracker",
   },
-  description: "Internal operations tracking system for Mawjood delivery captains.",
+  description: "Operations tracking system for Mawjood delivery captains.",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
